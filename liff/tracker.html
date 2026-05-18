@@ -75,6 +75,25 @@
   .btn-main:disabled{background:#aaa;cursor:default}
   .btn-nav{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:12px;padding:12px;font-size:14px;font-weight:500;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
   .btn-nav:active{opacity:0.8}
+  .gap-card{background:#fff;border-radius:14px;padding:14px;border:0.5px solid #eee;display:none}
+  .gap-card.show{display:block}
+  .gap-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-top:8px}
+  .gap-car{border-radius:10px;padding:8px;text-align:center}
+  .gap-car.a{background:#E6F1FB}
+  .gap-car.b{background:#E1F5EE}
+  .gap-car-name{font-size:11px;font-weight:600}
+  .gap-car.a .gap-car-name{color:#0C447C}
+  .gap-car.b .gap-car-name{color:#085041}
+  .gap-car-dist{font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gap-car.a .gap-car-dist{color:#185FA5}
+  .gap-car.b .gap-car-dist{color:#0F6E56}
+  .gap-center{text-align:center}
+  .gap-km{font-size:22px;font-weight:800;color:#1a1a1a;line-height:1}
+  .gap-unit{font-size:11px;color:#888;margin-top:2px}
+  .gap-updated{font-size:10px;color:#bbb;text-align:right;margin-top:6px}
+  .btn-gap{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:12px;padding:11px;font-size:13px;font-weight:500;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .btn-gap:active{opacity:.8}
+  .btn-gap.loading{color:#aaa;pointer-events:none}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
 </style>
@@ -143,6 +162,26 @@
     <div class="eta-updated" id="eta-updated"></div>
   </div>
 
+  <!-- ระยะห่างระหว่างคัน -->
+  <div class="gap-card" id="gap-card">
+    <div class="card-title">ระยะห่างระหว่างคัน</div>
+    <div class="gap-grid">
+      <div class="gap-car a">
+        <div class="gap-car-name">🚗 คัน A</div>
+        <div class="gap-car-dist" id="gap-dist-a">—</div>
+      </div>
+      <div class="gap-center">
+        <div class="gap-km" id="gap-km">—</div>
+        <div class="gap-unit">กม.</div>
+      </div>
+      <div class="gap-car b">
+        <div class="gap-car-name">🚙 คัน B</div>
+        <div class="gap-car-dist" id="gap-dist-b">—</div>
+      </div>
+    </div>
+    <div class="gap-updated" id="gap-updated"></div>
+  </div>
+
   <!-- Waypoints -->
   <div class="card" id="waypoint-card">
     <div class="card-title">สถานีระหว่างทาง</div>
@@ -159,6 +198,7 @@
     </div>
   </div>
 
+  <button class="btn-gap" id="btn-gap" onclick="checkGap()">📏 เช็คระยะห่างกับเพื่อน</button>
   <button class="btn-nav" onclick="openNavigation()">🗺️ นำทางด้วย Google Maps</button>
   <button class="btn-main" id="start-btn" onclick="startTracking()">📍 เริ่มติดตาม GPS</button>
 
@@ -440,6 +480,51 @@ function openNavigation() {
   let url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords}&destination=${destCoords}&travelmode=driving`;
   if (wps) url += `&waypoints=${encodeURIComponent(wps)}`;
   window.open(url, '_blank');
+}
+
+// ─── Gap Check ─────────────────────────────────────────────────
+async function checkGap() {
+  if (!TRIP_CODE) return showToast('ไม่มีข้อมูล trip');
+  const btn = document.getElementById('btn-gap');
+  btn.classList.add('loading');
+  btn.textContent = '⏳ กำลังคำนวณ...';
+
+  try {
+    const body = { userId: USER_ID };
+    if (lastGpsPos) { body.lat = lastGpsPos.lat; body.lon = lastGpsPos.lon; }
+
+    const resp = await fetch(`${BASE}/api/trip/${TRIP_CODE}/gap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+
+    btn.classList.remove('loading');
+    btn.textContent = '📏 เช็คระยะห่างกับเพื่อน';
+
+    if (data.status === 'no_data') {
+      return showToast('ยังไม่มี GPS ของอีกคัน กรุณารอให้เพื่อนเริ่มติดตาม GPS');
+    }
+
+    const gap = data.gap;
+    const km  = gap.distKm;
+    const display = km < 1 ? `${Math.round(km*1000)} ม.` : `${km} กม.`;
+
+    document.getElementById('gap-km').textContent  = km < 1 ? Math.round(km*1000) : km;
+    document.getElementById('gap-unit').textContent = km < 1 ? 'เมตร' : 'กิโลเมตร';
+    document.getElementById('gap-dist-a').textContent = gap.distA || '—';
+    document.getElementById('gap-dist-b').textContent = gap.distB || '—';
+    const t = new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('gap-updated').textContent = `อัปเดต ${t} น. · เส้นตรง`;
+    document.getElementById('gap-card').classList.add('show');
+
+    showToast(`📏 ห่างกัน ~${display}`);
+  } catch (e) {
+    btn.classList.remove('loading');
+    btn.textContent = '📏 เช็คระยะห่างกับเพื่อน';
+    showToast('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+  }
 }
 
 // ─── Toast ─────────────────────────────────────────────────────
