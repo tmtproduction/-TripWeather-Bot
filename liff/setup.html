@@ -40,6 +40,9 @@
   .btn-main:active{opacity:0.85}
   .btn-main:disabled{background:#aaa;cursor:default}
   .btn-secondary{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:14px;padding:13px;font-size:15px;font-weight:500;width:100%;cursor:pointer;text-align:center}
+  .btn-estimate{background:#fff;color:#185FA5;border:1.5px solid #185FA5;border-radius:14px;padding:13px;font-size:15px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-estimate:active{opacity:0.8}
+  .btn-estimate.loading{color:#aaa;border-color:#ddd;cursor:default;pointer-events:none}
   .divider{display:flex;align-items:center;gap:10px;color:#aaa;font-size:12px}
   .divider::before,.divider::after{content:'';flex:1;height:0.5px;background:#e8e8e8}
   .code-input{background:#f5f5f5;border:1.5px solid #e8e8e8;border-radius:12px;padding:14px;font-size:22px;font-weight:700;width:100%;text-align:center;letter-spacing:0.15em;color:#1a1a1a;outline:none}
@@ -48,7 +51,20 @@
   .result-title{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px}
   .result-route{font-size:14px;font-weight:500;color:#1a1a1a}
   .result-sub{font-size:12px;color:#666;margin-top:3px}
-  /* Modal */
+  /* Estimate Card */
+  .estimate-card{background:#fff;border-radius:14px;border:0.5px solid #e8e8e8;overflow:hidden;display:none}
+  .estimate-card.show{display:block}
+  .estimate-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .estimate-cell{border-radius:10px;padding:10px;text-align:center}
+  .estimate-num{font-size:26px;font-weight:800;line-height:1}
+  .estimate-unit{font-size:11px;margin-top:3px}
+  .estimate-legs{border-top:0.5px solid #f0f0f0}
+  .estimate-leg{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid #f5f5f5;font-size:12px;color:#555}
+  .estimate-leg:last-child{border-bottom:none}
+  .estimate-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .estimate-leg-name{flex:1}
+  .estimate-leg-info{color:#888;white-space:nowrap}
+  /* Search Modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;z-index:100;opacity:0;transition:opacity 0.25s;pointer-events:none}
   .modal-overlay.open{opacity:1;pointer-events:all}
   .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1)}
@@ -109,6 +125,7 @@
     <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
     <span style="font-size:16px;font-weight:600">สร้าง Trip ใหม่</span>
   </div>
+
   <div class="card">
     <div class="card-title">จุดเริ่มต้น</div>
     <div class="field-row" onclick="openSearchModal('origin')">
@@ -120,6 +137,7 @@
       <div class="field-chevron">›</div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-title">จุดแวะระหว่างทาง</div>
     <div class="waypoint-list" id="waypoint-list"></div>
@@ -128,6 +146,7 @@
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#185FA5" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="11" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
     เพิ่มจุดแวะ
   </div>
+
   <div class="card">
     <div class="card-title">จุดหมาย</div>
     <div class="field-row" onclick="openSearchModal('destination')">
@@ -139,6 +158,7 @@
       <div class="field-chevron">›</div>
     </div>
   </div>
+
   <div class="card">
     <div class="card-title">คุณอยู่คันไหน</div>
     <div class="car-grid">
@@ -152,6 +172,28 @@
       </div>
     </div>
   </div>
+
+  <!-- ประเมินเส้นทาง -->
+  <button class="btn-estimate" id="btn-estimate" onclick="estimateRoute()">
+    🔍 ประเมินเส้นทางก่อนสร้าง
+  </button>
+
+  <!-- ผลประเมิน -->
+  <div class="estimate-card" id="estimate-card">
+    <div class="card-title" style="padding:12px 14px 4px">สรุปเส้นทาง</div>
+    <div class="estimate-summary">
+      <div class="estimate-cell" style="background:#E6F1FB">
+        <div class="estimate-num" id="est-dist" style="color:#185FA5">—</div>
+        <div class="estimate-unit" style="color:#378ADD">กิโลเมตร</div>
+      </div>
+      <div class="estimate-cell" style="background:#E1F5EE">
+        <div class="estimate-num" id="est-dur" style="color:#0F6E56">—</div>
+        <div class="estimate-unit" style="color:#1D9E75">ชั่วโมง / นาที</div>
+      </div>
+    </div>
+    <div class="estimate-legs" id="estimate-legs"></div>
+  </div>
+
   <button class="btn-main" onclick="createTrip()">🚀 สร้าง Trip & รับ Code</button>
 </div>
 
@@ -168,6 +210,9 @@
     <div class="card-title">สรุปเส้นทาง</div>
     <div id="created-route" style="padding:10px 14px;font-size:13px;color:#444;line-height:1.8"></div>
   </div>
+  <button class="btn-secondary" onclick="openInGoogleMaps()" style="border-radius:14px;padding:13px">
+    🗺️ เปิดเส้นทางใน Google Maps
+  </button>
   <button class="btn-main" onclick="startTracking()">📍 เริ่มติดตาม GPS</button>
 </div>
 
@@ -246,39 +291,35 @@ let state = {
   foundTrip: null, joinCarId: 'B',
 };
 
-// ─── Google Maps ─────────────────────────────────────────────
+// ─── Google Maps ──────────────────────────────────────────────
 let autoSvc = null, placesSvc = null, mapsReady = false;
 
 async function loadGoogleMaps() {
   try {
     const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
     if (!cfg.mapsKey) throw new Error('no key');
-
     await new Promise((ok, fail) => {
       const s = document.createElement('script');
       s.src = `https://maps.googleapis.com/maps/api/js?key=${cfg.mapsKey}&libraries=places&language=th`;
       s.onload = ok; s.onerror = fail;
       document.head.appendChild(s);
     });
-
     const el = Object.assign(document.createElement('div'), { style: 'display:none' });
     document.body.appendChild(el);
     autoSvc   = new google.maps.places.AutocompleteService();
     placesSvc = new google.maps.places.PlacesService(el);
     mapsReady = true;
     document.getElementById('google-attr').style.display = 'block';
-    console.log('Google Maps Places ready');
   } catch (e) {
-    console.warn('Google Maps failed, using Nominatim fallback:', e.message);
+    console.warn('Google Maps failed, using Nominatim:', e.message);
     mapsReady = false;
   }
-  // ปลดล็อกปุ่มสร้าง trip
   const btn = document.getElementById('btn-create');
   btn.disabled = false;
   btn.textContent = '➕ สร้าง Trip ใหม่';
 }
 
-// ─── LIFF ────────────────────────────────────────────────────
+// ─── LIFF ─────────────────────────────────────────────────────
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
@@ -294,16 +335,15 @@ async function initLiff() {
 
 Promise.all([initLiff(), loadGoogleMaps()]);
 
-// ─── Screen Nav ──────────────────────────────────────────────
+// ─── Screen Nav ───────────────────────────────────────────────
 function showScreen(id) {
   ['screen-main','screen-create','screen-created','screen-join']
     .forEach(s => document.getElementById(s).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
 
-// ─── Search Modal ─────────────────────────────────────────────
+// ─── Search Modal ──────────────────────────────────────────────
 let modalTarget = null, searchTimer = null, pendingPreds = [];
-
 const TITLES = { origin:'จุดเริ่มต้น', waypoint:'จุดแวะระหว่างทาง', destination:'จุดหมายปลายทาง' };
 
 function openSearchModal(t) {
@@ -344,7 +384,7 @@ document.getElementById('modal-search-input').addEventListener('input', function
   searchTimer = setTimeout(() => mapsReady ? doGoogleSearch(q) : doNominatimSearch(q), 350);
 });
 
-// ── Google Places ─────────────────────────────────────────────
+// ── Google Places ──────────────────────────────────────────────
 function doGoogleSearch(q) {
   autoSvc.getPlacePredictions(
     { input: q, componentRestrictions: { country: 'th' }, language: 'th' },
@@ -386,7 +426,7 @@ function selectGooglePlace(i) {
   );
 }
 
-// ── Nominatim fallback ────────────────────────────────────────
+// ── Nominatim fallback ─────────────────────────────────────────
 let _nomItems = [];
 async function doNominatimSearch(q) {
   try {
@@ -402,7 +442,8 @@ async function doNominatimSearch(q) {
     _nomItems = r.map(x => {
       const a = x.address || {};
       const name = x.name || a.road || a.city || x.display_name.split(',')[0];
-      const addr = [a.city, a.county, a.state].filter(Boolean).filter((v,i,arr)=>arr.indexOf(v)===i).join(' · ');
+      const addr = [a.city, a.county, a.state].filter(Boolean)
+        .filter((v,i,arr)=>arr.indexOf(v)===i).join(' · ');
       return { name, addr: addr || x.display_name, lat: +x.lat, lon: +x.lon, types: [x.type] };
     });
     document.getElementById('search-results').innerHTML = _nomItems.map((it, i) => `
@@ -425,7 +466,7 @@ function selectNomItem(i) {
   applyPlace({ name: it.name, lat: it.lat, lon: it.lon }, it.addr);
 }
 
-// ── Apply & Icon ──────────────────────────────────────────────
+// ── Apply & Icon ───────────────────────────────────────────────
 function applyPlace(obj, addr) {
   if (modalTarget === 'origin') {
     state.origin = obj;
@@ -440,25 +481,28 @@ function applyPlace(obj, addr) {
   } else if (modalTarget === 'waypoint') {
     state.waypoints.push(obj); renderWaypoints();
   }
+  // reset estimate เมื่อเปลี่ยนสถานที่
+  document.getElementById('estimate-card').classList.remove('show');
+  document.getElementById('btn-estimate').textContent = '🔍 ประเมินเส้นทางก่อนสร้าง';
   closeSearchModal();
 }
 
 function placeIcon(types = []) {
   const t = types.join(' ');
-  if (/hospital|clinic|health/.test(t))           return '🏥';
-  if (/school|university/.test(t))                return '🏫';
-  if (/gas_station|fuel/.test(t))                 return '⛽';
-  if (/lodging|hotel/.test(t))                    return '🏨';
-  if (/restaurant|food|cafe/.test(t))             return '🍽️';
-  if (/airport/.test(t))                          return '✈️';
-  if (/train|transit/.test(t))                    return '🚉';
-  if (/shopping|store/.test(t))                   return '🛍️';
-  if (/park|natural/.test(t))                     return '🌳';
+  if (/hospital|clinic|health/.test(t))            return '🏥';
+  if (/school|university/.test(t))                 return '🏫';
+  if (/gas_station|fuel/.test(t))                  return '⛽';
+  if (/lodging|hotel/.test(t))                     return '🏨';
+  if (/restaurant|food|cafe/.test(t))              return '🍽️';
+  if (/airport/.test(t))                           return '✈️';
+  if (/train|transit/.test(t))                     return '🚉';
+  if (/shopping|store/.test(t))                    return '🛍️';
+  if (/park|natural/.test(t))                      return '🌳';
   if (/locality|city|town|administrative/.test(t)) return '🏙️';
   return '📍';
 }
 
-// ─── Waypoints ────────────────────────────────────────────────
+// ─── Waypoints ─────────────────────────────────────────────────
 function renderWaypoints() {
   document.getElementById('waypoint-list').innerHTML = state.waypoints.map((wp, i) => `
     <div class="wp-item">
@@ -467,16 +511,108 @@ function renderWaypoints() {
       <div class="wp-del" onclick="removeWaypoint(${i})">✕</div>
     </div>`).join('');
 }
-function removeWaypoint(i) { state.waypoints.splice(i, 1); renderWaypoints(); }
+function removeWaypoint(i) {
+  state.waypoints.splice(i, 1); renderWaypoints();
+  document.getElementById('estimate-card').classList.remove('show');
+}
 
-// ─── Car Select ───────────────────────────────────────────────
+// ─── Car Select ────────────────────────────────────────────────
 function selectCar(id) {
   state.selectedCar = id;
   document.getElementById('car-a-btn').className = 'car-btn' + (id==='A'?' sel-a':'');
   document.getElementById('car-b-btn').className = 'car-btn' + (id==='B'?' sel-b':'');
 }
 
-// ─── Create Trip ──────────────────────────────────────────────
+// ─── Estimate Route ────────────────────────────────────────────
+async function estimateRoute() {
+  if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้นก่อน');
+  if (!state.destination) return showToast('กรุณาเลือกจุดหมายก่อน');
+  const btn = document.getElementById('btn-estimate');
+  btn.classList.add('loading');
+  btn.textContent = '⏳ กำลังคำนวณ...';
+  if (mapsReady) {
+    estimateWithGoogle();
+  } else {
+    await estimateWithOSRM();
+  }
+}
+
+function estimateWithGoogle() {
+  const svc = new google.maps.DirectionsService();
+  const wps = state.waypoints.filter(w => w.lat && w.lon)
+    .map(w => ({ location: new google.maps.LatLng(w.lat, w.lon), stopover: true }));
+  svc.route({
+    origin:      new google.maps.LatLng(state.origin.lat, state.origin.lon),
+    destination: new google.maps.LatLng(state.destination.lat, state.destination.lon),
+    waypoints:   wps,
+    travelMode:  google.maps.TravelMode.DRIVING,
+    language:    'th',
+  }, (result, status) => {
+    resetEstimateBtn();
+    if (status !== 'OK') return showToast('ประเมินเส้นทางไม่ได้ ลองใหม่อีกครั้ง');
+    const legs      = result.routes[0].legs;
+    const totalDist = legs.reduce((s, l) => s + l.distance.value, 0);
+    const totalDur  = legs.reduce((s, l) => s + l.duration.value, 0);
+    const allPoints = [state.origin, ...state.waypoints, state.destination];
+    const legData   = legs.map((l, i) => ({
+      from:    allPoints[i]?.name   || '',
+      to:      allPoints[i+1]?.name || '',
+      distKm:  Math.round(l.distance.value / 1000),
+      durMin:  Math.round(l.duration.value  / 60),
+    }));
+    showEstimateResult(Math.round(totalDist/1000), Math.round(totalDur/60), legData);
+  });
+}
+
+async function estimateWithOSRM() {
+  try {
+    const points = [state.origin, ...state.waypoints.filter(w=>w.lat&&w.lon), state.destination];
+    const coords = points.map(p => `${p.lon},${p.lat}`).join(';');
+    const data   = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`
+    ).then(r => r.json());
+    resetEstimateBtn();
+    const route = data.routes?.[0];
+    if (!route) return showToast('ประเมินเส้นทางไม่ได้');
+    showEstimateResult(Math.round(route.distance/1000), Math.round(route.duration/60), []);
+  } catch {
+    resetEstimateBtn();
+    showToast('ประเมินเส้นทางไม่ได้ กรุณาลองใหม่');
+  }
+}
+
+function showEstimateResult(distKm, durMin, legs) {
+  const h   = Math.floor(durMin / 60);
+  const m   = durMin % 60;
+  const dur = h > 0 ? `${h}ชม.${m > 0 ? m+'น.' : ''}` : `${m}น.`;
+  document.getElementById('est-dist').textContent = distKm;
+  document.getElementById('est-dur').textContent  = dur;
+  const dotColors = ['#185FA5', ...state.waypoints.map(() => '#EF9F27'), '#0F6E56'];
+  const allPoints = [state.origin, ...state.waypoints, state.destination];
+  const legsHTML  = legs.length
+    ? legs.map((leg, i) => `
+        <div class="estimate-leg">
+          <div class="estimate-leg-dot" style="background:${dotColors[i]}"></div>
+          <div class="estimate-leg-name">${leg.from} → ${leg.to}</div>
+          <div class="estimate-leg-info">~${leg.distKm} กม. · ~${leg.durMin} น.</div>
+        </div>`).join('')
+    : allPoints.slice(0,-1).map((p, i) => `
+        <div class="estimate-leg">
+          <div class="estimate-leg-dot" style="background:${dotColors[i]}"></div>
+          <div class="estimate-leg-name">${p.name} → ${allPoints[i+1].name}</div>
+          <div class="estimate-leg-info"></div>
+        </div>`).join('');
+  document.getElementById('estimate-legs').innerHTML = legsHTML;
+  document.getElementById('estimate-card').classList.add('show');
+}
+
+function resetEstimateBtn() {
+  const btn = document.getElementById('btn-estimate');
+  btn.classList.remove('loading');
+  btn.textContent = '🔍 ประเมินเส้นทางอีกครั้ง';
+}
+
+// ─── Create Trip ───────────────────────────────────────────────
 async function createTrip() {
   if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้น');
   if (!state.destination) return showToast('กรุณาเลือกจุดหมาย');
@@ -496,6 +632,18 @@ async function createTrip() {
   } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
+// ─── Open in Google Maps ───────────────────────────────────────
+function openInGoogleMaps() {
+  if (!state.origin || !state.destination) return;
+  const o  = `${state.origin.lat},${state.origin.lon}`;
+  const d  = `${state.destination.lat},${state.destination.lon}`;
+  const wps = state.waypoints.filter(w => w.lat && w.lon)
+    .map(w => `${w.lat},${w.lon}`).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}&travelmode=driving`;
+  if (wps) url += `&waypoints=${encodeURIComponent(wps)}`;
+  window.open(url, '_blank');
+}
+
 function copyCode() {
   navigator.clipboard.writeText(state.tripCode).then(() => showToast('คัดลอก code แล้ว!'));
 }
@@ -504,7 +652,7 @@ function startTracking() {
   window.location.href = `${BASE}/liff/tracker.html?liffId=${LIFF_ID}&groupId=${GROUP_ID}&tripCode=${state.tripCode}&carId=${state.selectedCar}&userId=${state.userId}`;
 }
 
-// ─── Join Trip ────────────────────────────────────────────────
+// ─── Join Trip ─────────────────────────────────────────────────
 async function searchTrip() {
   const code = document.getElementById('join-code-input').value.trim();
   if (code.length < 4) return showToast('กรุณากรอก code ให้ครบ');
@@ -526,7 +674,9 @@ async function searchTrip() {
     document.getElementById('join-result').classList.remove('hidden');
   } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
+
 function selectJoinCar(id) { state.joinCarId = id; searchTrip(); }
+
 async function joinTrip() {
   if (!state.foundTrip) return;
   try {
@@ -538,6 +688,7 @@ async function joinTrip() {
   } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
+// ─── Toast ─────────────────────────────────────────────────────
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
