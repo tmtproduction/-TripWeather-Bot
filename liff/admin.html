@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripWeather — Admin</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0f0;color:#1a1a1a;min-height:100vh}
+  .header{background:#1a1a1a;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  .header-left{display:flex;align-items:center;gap:10px}
+  .header-title{color:#fff;font-size:15px;font-weight:600}
+  .header-sub{color:#888;font-size:11px;margin-top:1px}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .refresh-btn{background:#333;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .refresh-btn:active{opacity:0.8}
+  .refresh-btn.spinning svg{animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .status-bar{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:12px 20px;display:flex;align-items:center;gap:16px}
+  .stat-pill{display:flex;align-items:center;gap:6px;font-size:13px;color:#555}
+  .stat-dot{width:8px;height:8px;border-radius:50%}
+  .stat-dot.green{background:#1D9E75;animation:blink 1.4s infinite}
+  .stat-dot.gray{background:#ccc}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .stat-num{font-weight:700;color:#1a1a1a}
+  .last-refresh{font-size:11px;color:#aaa;margin-left:auto}
+  .body{padding:16px 20px;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  /* Auth */
+  .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh}
+  .auth-card{background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:360px;border:0.5px solid #e8e8e8}
+  .auth-icon{font-size:36px;text-align:center;margin-bottom:12px}
+  .auth-title{font-size:16px;font-weight:600;text-align:center;margin-bottom:4px}
+  .auth-sub{font-size:13px;color:#888;text-align:center;margin-bottom:18px}
+  .auth-input{width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:12px;font-size:15px;outline:none;letter-spacing:.1em}
+  .auth-input:focus{border-color:#1a1a1a}
+  .auth-btn{width:100%;background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px}
+  .auth-btn:active{opacity:0.85}
+  .auth-error{font-size:12px;color:#E24B4A;text-align:center;margin-top:8px;display:none}
+  /* Trip Card */
+  .trip-card{background:#fff;border-radius:14px;border:0.5px solid #e8e8e8;overflow:hidden}
+  .trip-head{padding:13px 16px;border-bottom:0.5px solid #f5f5f5;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .trip-code{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:.08em;font-family:monospace}
+  .trip-route{font-size:14px;font-weight:600;color:#1a1a1a;margin-top:3px;line-height:1.4}
+  .trip-wp{font-size:12px;color:#888;margin-top:2px}
+  .trip-age{font-size:11px;color:#aaa;white-space:nowrap;margin-top:2px;flex-shrink:0}
+  .trip-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+  .trip-info-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .info-chip{display:flex;align-items:center;gap:5px;background:#f5f5f5;border-radius:8px;padding:5px 9px;font-size:12px;color:#555}
+  .info-chip.active{background:#E1F5EE;color:#085041}
+  .cars-row{display:flex;gap:8px}
+  .car-chip{flex:1;border-radius:10px;padding:8px 10px;font-size:12px}
+  .car-chip.car-a{background:#E6F1FB}
+  .car-chip.car-b{background:#E1F5EE}
+  .car-chip-title{font-weight:600;margin-bottom:2px}
+  .car-chip.car-a .car-chip-title{color:#0C447C}
+  .car-chip.car-b .car-chip-title{color:#085041}
+  .car-chip-members{color:#555;font-size:11px}
+  .member-id{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trip-foot{padding:10px 16px;border-top:0.5px solid #f5f5f5;display:flex;align-items:center;gap:8px}
+  .btn-detail{flex:1;background:#f5f5f5;color:#1a1a1a;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;text-align:left}
+  .btn-detail:active{opacity:.8}
+  .btn-delete{background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .btn-delete:active{opacity:.8}
+  /* Detail drawer */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none}
+  .drawer-overlay.open{opacity:1;pointer-events:all}
+  .drawer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;max-height:80vh;overflow-y:auto;z-index:51;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);padding:16px 20px 32px}
+  .drawer-overlay.open .drawer{transform:translateY(0)}
+  .drawer-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 14px}
+  .drawer-title{font-size:15px;font-weight:600;margin-bottom:14px}
+  .drawer-section{margin-bottom:12px}
+  .drawer-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+  .drawer-value{font-size:14px;color:#1a1a1a;line-height:1.6}
+  .drawer-value.mono{font-family:monospace;font-size:13px;color:#555}
+  /* Empty */
+  .empty{text-align:center;padding:48px 16px;color:#aaa;font-size:14px}
+  .empty-icon{font-size:40px;margin-bottom:10px}
+  /* Confirm */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;pointer-events:none;padding:20px}
+  .confirm-overlay.open{opacity:1;pointer-events:all}
+  .confirm-card{background:#fff;border-radius:16px;padding:20px;max-width:320px;width:100%}
+  .confirm-title{font-size:15px;font-weight:600;margin-bottom:6px}
+  .confirm-sub{font-size:13px;color:#888;margin-bottom:16px;line-height:1.5}
+  .confirm-btns{display:flex;gap:8px}
+  .confirm-cancel{flex:1;background:#f5f5f5;border:none;border-radius:8px;padding:11px;font-size:14px;cursor:pointer}
+  .confirm-ok{flex:1;background:#E24B4A;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">🌤 TripWeather Admin</div>
+      <div class="header-sub">จัดการ Active Trips</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="refresh-btn" id="refresh-btn" onclick="loadTrips()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      รีเฟรช
+    </button>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar" id="status-bar" style="display:none">
+  <div class="stat-pill">
+    <div class="stat-dot green" id="dot-active"></div>
+    <span><span class="stat-num" id="count-active">0</span> Trip กำลังดำเนินการ</span>
+  </div>
+  <div class="last-refresh" id="last-refresh"></div>
+</div>
+
+<!-- Auth -->
+<div class="auth-wrap" id="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-icon">🔐</div>
+    <div class="auth-title">Admin Access</div>
+    <div class="auth-sub">ใส่ Admin Secret Key เพื่อเข้าใช้งาน</div>
+    <input class="auth-input" type="password" id="auth-input" placeholder="Secret Key"
+      onkeydown="if(event.key==='Enter')doAuth()" />
+    <button class="auth-btn" onclick="doAuth()">เข้าสู่ระบบ</button>
+    <div class="auth-error" id="auth-error">Secret Key ไม่ถูกต้อง</div>
+  </div>
+</div>
+
+<!-- Trip List -->
+<div class="body hidden" id="trip-list-wrap">
+  <div id="trip-list"></div>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title" id="drawer-title">รายละเอียด Trip</div>
+    <div id="drawer-body"></div>
+  </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-card">
+    <div class="confirm-title">ลบ Trip นี้?</div>
+    <div class="confirm-sub" id="confirm-sub">Trip จะถูกลบออกจากระบบทันที ไม่สามารถกู้คืนได้</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">ยกเลิก</button>
+      <button class="confirm-ok" onclick="confirmDelete()">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+let adminKey = '';
+let trips    = [];
+let pendingDeleteCode = null;
+
+// ─── Auth ──────────────────────────────────────────────────────
+async function doAuth() {
+  const key = document.getElementById('auth-input').value.trim();
+  if (!key) return;
+  adminKey = key;
+  const ok = await loadTrips();
+  if (!ok) {
+    adminKey = '';
+    document.getElementById('auth-error').style.display = 'block';
+  }
+}
+
+// ─── Load Trips ────────────────────────────────────────────────
+async function loadTrips() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  try {
+    const resp = await fetch(`${BASE}/api/admin/trips?key=${encodeURIComponent(adminKey)}`);
+    if (!resp.ok) { btn.classList.remove('spinning'); return false; }
+    trips = await resp.json();
+
+    // แสดง UI
+    document.getElementById('auth-wrap').classList.add('hidden');
+    document.getElementById('trip-list-wrap').classList.remove('hidden');
+    document.getElementById('status-bar').style.display = 'flex';
+    document.getElementById('count-active').textContent = trips.length;
+
+    const t = new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    document.getElementById('last-refresh').textContent = `อัปเดต ${t}`;
+
+    renderTrips();
+    btn.classList.remove('spinning');
+    return true;
+  } catch {
+    btn.classList.remove('spinning');
+    return false;
+  }
+}
+
+// ─── Render ────────────────────────────────────────────────────
+function renderTrips() {
+  const list = document.getElementById('trip-list');
+  if (!trips.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🗺️</div>ยังไม่มี Trip ที่กำลังดำเนินการ</div>`;
+    return;
+  }
+  list.innerHTML = trips.map(t => tripCard(t)).join('');
+}
+
+function tripCard(t) {
+  const oName  = t.origin?.name      ?? t.origin      ?? '?';
+  const dName  = t.destination?.name ?? t.destination ?? '?';
+  const wps    = (t.waypoints || []).map(w => w?.name ?? w).filter(Boolean);
+  const age    = timeAgo(t.createdAt);
+  const carA   = t.cars?.A || { members:[], name:'คัน A' };
+  const carB   = t.cars?.B || { members:[], name:'คัน B' };
+  const total  = carA.members.length + carB.members.length;
+
+  return `
+    <div class="trip-card" id="card-${t.tripCode}">
+      <div class="trip-head">
+        <div>
+          <div class="trip-code">${t.tripCode}</div>
+          <div class="trip-route">${oName} → ${dName}</div>
+          ${wps.length ? `<div class="trip-wp">แวะ: ${wps.join(' · ')}</div>` : ''}
+        </div>
+        <div class="trip-age">${age}</div>
+      </div>
+      <div class="trip-body">
+        <div class="trip-info-row">
+          <div class="info-chip ${total > 0 ? 'active' : ''}">
+            ${total > 0 ? '🟢' : '⚪'} ${total} คนใน trip
+          </div>
+          ${t.createdBy ? `<div class="info-chip">👤 สร้างโดย ${shortId(t.createdBy)}</div>` : ''}
+          ${t.groupId ? `<div class="info-chip">💬 ${shortId(t.groupId)}</div>` : ''}
+        </div>
+        <div class="cars-row">
+          <div class="car-chip car-a">
+            <div class="car-chip-title">🚗 คัน A</div>
+            <div class="car-chip-members">${carA.members.length > 0 ? carA.members.length + ' คน' : 'ว่างอยู่'}</div>
+            ${carA.members.map(m => `<div class="member-id">${shortId(m)}</div>`).join('')}
+          </div>
+          <div class="car-chip car-b">
+            <div class="car-chip-title">🚙 คัน B</div>
+            <div class="car-chip-members">${carB.members.length > 0 ? carB.members.length + ' คน' : 'ว่างอยู่'}</div>
+            ${carB.members.map(m => `<div class="member-id">${shortId(m)}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="trip-foot">
+        <button class="btn-detail" onclick="openDrawer('${t.tripCode}')">📋 ดูรายละเอียด</button>
+        <button class="btn-delete" onclick="askDelete('${t.tripCode}')">🗑 ลบ</button>
+      </div>
+    </div>`;
+}
+
+// ─── Drawer ────────────────────────────────────────────────────
+function openDrawer(code) {
+  const t = trips.find(x => x.tripCode === code);
+  if (!t) return;
+  const oName = t.origin?.name ?? t.origin ?? '?';
+  const dName = t.destination?.name ?? t.destination ?? '?';
+  const wps   = (t.waypoints || []).map(w => w?.name ?? w).filter(Boolean);
+  const carA  = t.cars?.A || { members:[] };
+  const carB  = t.cars?.B || { members:[] };
+
+  document.getElementById('drawer-title').textContent = t.tripCode;
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-section">
+      <div class="drawer-label">เส้นทาง</div>
+      <div class="drawer-value">🔵 ${oName}${wps.map(w=>`<br>🟡 ${w}`).join('')}<br>🏁 ${dName}</div>
+    </div>
+    ${t.origin?.lat ? `
+    <div class="drawer-section">
+      <div class="drawer-label">พิกัดเริ่มต้น</div>
+      <div class="drawer-value mono">${t.origin.lat.toFixed(5)}, ${t.origin.lon.toFixed(5)}</div>
+    </div>` : ''}
+    ${t.destination?.lat ? `
+    <div class="drawer-section">
+      <div class="drawer-label">พิกัดปลายทาง</div>
+      <div class="drawer-value mono">${t.destination.lat.toFixed(5)}, ${t.destination.lon.toFixed(5)}</div>
+    </div>` : ''}
+    <div class="drawer-section">
+      <div class="drawer-label">คนสร้าง</div>
+      <div class="drawer-value mono">${t.createdBy || '-'}</div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-label">Group ID</div>
+      <div class="drawer-value mono">${t.groupId || '-'}</div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-label">สมาชิก คัน A</div>
+      <div class="drawer-value mono">${carA.members.length ? carA.members.join('<br>') : '(ว่าง)'}</div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-label">สมาชิก คัน B</div>
+      <div class="drawer-value mono">${carB.members.length ? carB.members.join('<br>') : '(ว่าง)'}</div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-label">สร้างเมื่อ</div>
+      <div class="drawer-value">${new Date(t.createdAt).toLocaleString('th-TH')}</div>
+    </div>
+    <div style="margin-top:16px">
+      <button onclick="askDelete('${t.tripCode}');closeDrawer()" style="width:100%;background:#FCEBEB;color:#A32D2D;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">🗑 ลบ Trip นี้</button>
+    </div>
+  `;
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+// ─── Delete ────────────────────────────────────────────────────
+function askDelete(code) {
+  pendingDeleteCode = code;
+  document.getElementById('confirm-sub').textContent = `Trip ${code} จะถูกลบออกจากระบบทันที`;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  pendingDeleteCode = null;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteCode) return;
+  const code = pendingDeleteCode;
+  closeConfirm();
+  try {
+    await fetch(`${BASE}/api/admin/trip/${code}?key=${encodeURIComponent(adminKey)}`, { method:'DELETE' });
+    trips = trips.filter(t => t.tripCode !== code);
+    document.getElementById('count-active').textContent = trips.length;
+    renderTrips();
+  } catch (e) {
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m    = Math.floor(diff / 60000);
+  const h    = Math.floor(m / 60);
+  if (m < 1)  return 'เพิ่งสร้าง';
+  if (m < 60) return `${m} นาทีที่แล้ว`;
+  if (h < 24) return `${h} ชม.${m%60 > 0 ? (m%60)+'น.' : ''}ที่แล้ว`;
+  return `${Math.floor(h/24)} วันที่แล้ว`;
+}
+
+function shortId(id) {
+  if (!id) return '?';
+  if (id.startsWith('dev-')) return id;
+  return id.length > 12 ? id.substring(0,6)+'…'+id.slice(-4) : id;
+}
+
+// Auto refresh ทุก 30 วินาที
+setInterval(() => { if (adminKey) loadTrips(); }, 30000);
+</script>
+</body>
+</html>
