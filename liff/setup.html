@@ -21,7 +21,7 @@
   .field-text{flex:1;min-width:0}
   .field-name{font-size:14px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .field-name.placeholder{color:#aaa;font-weight:400}
-  .field-sub{font-size:12px;color:#888;margin-top:2px}
+  .field-sub{font-size:12px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .field-chevron{color:#ccc;font-size:16px}
   .waypoint-list{padding:0}
   .wp-item{display:flex;align-items:center;padding:10px 14px;gap:10px;border-bottom:0.5px solid #f0f0f0}
@@ -29,7 +29,6 @@
   .wp-name{flex:1;font-size:14px;font-weight:500;color:#1a1a1a;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .wp-del{color:#ccc;font-size:18px;padding:4px;cursor:pointer;flex-shrink:0}
   .add-wp{display:flex;align-items:center;gap:8px;padding:11px 14px;color:#185FA5;font-size:13px;font-weight:500;cursor:pointer;background:#f8fbff;border:1.5px dashed #b5d4f4;border-radius:12px}
-  .add-wp svg{flex-shrink:0}
   .car-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
   .car-btn{border:1.5px solid #e8e8e8;border-radius:12px;padding:10px;cursor:pointer;text-align:center;background:#fff;transition:all 0.15s}
   .car-btn.sel-a{border-color:#378ADD;background:#E6F1FB}
@@ -39,49 +38,47 @@
   .car-btn-sub{font-size:11px;color:#888;margin-top:1px}
   .btn-main{background:#06C755;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
   .btn-main:active{opacity:0.85}
+  .btn-main:disabled{background:#aaa;cursor:default}
   .btn-secondary{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:14px;padding:13px;font-size:15px;font-weight:500;width:100%;cursor:pointer;text-align:center}
   .divider{display:flex;align-items:center;gap:10px;color:#aaa;font-size:12px}
   .divider::before,.divider::after{content:'';flex:1;height:0.5px;background:#e8e8e8}
   .code-input{background:#f5f5f5;border:1.5px solid #e8e8e8;border-radius:12px;padding:14px;font-size:22px;font-weight:700;width:100%;text-align:center;letter-spacing:0.15em;color:#1a1a1a;outline:none}
   .code-input:focus{border-color:#06C755}
   .result-card{background:#fff;border-radius:14px;border:1.5px solid #06C755;padding:14px}
-  .result-title{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .result-title{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px}
   .result-route{font-size:14px;font-weight:500;color:#1a1a1a}
   .result-sub{font-size:12px;color:#666;margin-top:3px}
-  .stat-row{display:flex;gap:8px;margin-top:10px}
-  .stat-pill{flex:1;background:#f5f5f5;border-radius:8px;padding:6px;text-align:center}
-  .stat-num{font-size:14px;font-weight:700;color:#1a1a1a}
-  .stat-lbl{font-size:10px;color:#888;margin-top:1px}
-
-  /* ─── Search Modal ─── */
+  /* Modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;z-index:100;opacity:0;transition:opacity 0.25s;pointer-events:none}
   .modal-overlay.open{opacity:1;pointer-events:all}
   .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1)}
   .modal-overlay.open .modal{transform:translateY(0)}
   .modal-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:10px auto 0}
   .modal-header{padding:12px 16px 10px;border-bottom:0.5px solid #f0f0f0}
-  .modal-title{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:10px}
+  .modal-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .modal-title{font-size:15px;font-weight:600;color:#1a1a1a}
+  .modal-close{background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;padding:0 2px}
   .search-wrap{position:relative;display:flex;align-items:center}
   .search-icon{position:absolute;left:12px;color:#aaa;font-size:16px;pointer-events:none}
-  .modal-search{width:100%;border:1.5px solid #e8e8e8;border-radius:12px;padding:11px 12px 11px 38px;font-size:15px;outline:none;background:#f8f8f8;transition:border-color 0.2s,background 0.2s}
+  .modal-search{width:100%;border:1.5px solid #e8e8e8;border-radius:12px;padding:11px 36px 11px 38px;font-size:15px;outline:none;background:#f8f8f8;transition:border-color 0.2s}
   .modal-search:focus{border-color:#06C755;background:#fff}
   .search-spinner{position:absolute;right:12px;width:16px;height:16px;border:2px solid #e0e0e0;border-top-color:#06C755;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
   .search-spinner.show{display:block}
+  .clear-btn{position:absolute;right:12px;background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;display:none;padding:0;line-height:1}
+  .clear-btn.show{display:block}
   @keyframes spin{to{transform:rotate(360deg)}}
   .modal-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .search-results{display:flex;flex-direction:column}
-  .search-hint{text-align:center;padding:32px 16px;color:#aaa;font-size:13px;line-height:1.6}
+  .search-hint{text-align:center;padding:32px 16px;color:#aaa;font-size:13px;line-height:1.8}
   .search-hint-icon{font-size:32px;margin-bottom:8px}
-  .result-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid #f5f5f5;cursor:pointer;transition:background 0.12s;-webkit-tap-highlight-color:transparent}
-  .result-item:active{background:#f5f5f5}
-  .result-item:last-child{border-bottom:none}
+  .result-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid #f5f5f5;cursor:pointer}
+  .result-item:active{background:#f8f8f8}
   .result-pin{width:34px;height:34px;border-radius:10px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
   .result-info{flex:1;min-width:0}
-  .result-name{font-size:14px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result-name{font-size:14px;font-weight:500;color:#1a1a1a}
   .result-addr{font-size:12px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .result-chevron{color:#ddd;font-size:14px;flex-shrink:0}
-  .no-results{text-align:center;padding:32px 16px;color:#aaa;font-size:13px}
-
+  .no-results{text-align:center;padding:32px 16px;color:#aaa;font-size:13px;line-height:1.6}
+  .google-attr{padding:6px 16px 10px;text-align:right;font-size:10px;color:#bbb}
   .hidden{display:none!important}
   .success-box{background:#E1F5EE;border-radius:12px;padding:14px;text-align:center}
   .success-code{font-size:28px;font-weight:800;color:#0F6E56;letter-spacing:0.15em;margin:6px 0}
@@ -94,21 +91,16 @@
 
 <div class="header">
   <div class="header-icon">🌤</div>
-  <div>
-    <h1>TripWeather</h1>
-    <p>แจ้งอากาศ + จราจร เมื่อข้ามอำเภอ</p>
-  </div>
+  <div><h1>TripWeather</h1><p>แจ้งอากาศ + จราจร เมื่อข้ามอำเภอ</p></div>
 </div>
 
 <!-- หน้าหลัก -->
 <div id="screen-main" class="body">
-  <button class="btn-main" onclick="showScreen('screen-create')">
-    ➕ สร้าง Trip ใหม่
+  <button class="btn-main" id="btn-create" onclick="showScreen('screen-create')" disabled>
+    ⏳ กำลังโหลด...
   </button>
   <div class="divider">หรือ</div>
-  <button class="btn-secondary" onclick="showScreen('screen-join')">
-    🔗 Join Trip ด้วย Code
-  </button>
+  <button class="btn-secondary" onclick="showScreen('screen-join')">🔗 Join Trip ด้วย Code</button>
 </div>
 
 <!-- หน้าสร้าง Trip -->
@@ -117,8 +109,6 @@
     <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
     <span style="font-size:16px;font-weight:600">สร้าง Trip ใหม่</span>
   </div>
-
-  <!-- จุดเริ่มต้น -->
   <div class="card">
     <div class="card-title">จุดเริ่มต้น</div>
     <div class="field-row" onclick="openSearchModal('origin')">
@@ -130,8 +120,6 @@
       <div class="field-chevron">›</div>
     </div>
   </div>
-
-  <!-- Waypoints -->
   <div class="card">
     <div class="card-title">จุดแวะระหว่างทาง</div>
     <div class="waypoint-list" id="waypoint-list"></div>
@@ -140,8 +128,6 @@
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#185FA5" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="11" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
     เพิ่มจุดแวะ
   </div>
-
-  <!-- ปลายทาง -->
   <div class="card">
     <div class="card-title">จุดหมาย</div>
     <div class="field-row" onclick="openSearchModal('destination')">
@@ -153,30 +139,23 @@
       <div class="field-chevron">›</div>
     </div>
   </div>
-
-  <!-- เลือกคัน -->
   <div class="card">
     <div class="card-title">คุณอยู่คันไหน</div>
     <div class="car-grid">
       <div class="car-btn sel-a" id="car-a-btn" onclick="selectCar('A')">
-        <div class="car-btn-icon">🚗</div>
-        <div class="car-btn-name">คัน A</div>
-        <div class="car-btn-sub" id="car-a-sub">คุณ (คนสร้าง)</div>
+        <div class="car-btn-icon">🚗</div><div class="car-btn-name">คัน A</div>
+        <div class="car-btn-sub">คุณ (คนสร้าง)</div>
       </div>
       <div class="car-btn" id="car-b-btn" onclick="selectCar('B')">
-        <div class="car-btn-icon">🚙</div>
-        <div class="car-btn-name">คัน B</div>
+        <div class="car-btn-icon">🚙</div><div class="car-btn-name">คัน B</div>
         <div class="car-btn-sub">เพื่อนจะ join</div>
       </div>
     </div>
   </div>
-
-  <button class="btn-main" onclick="createTrip()">
-    🚀 สร้าง Trip & รับ Code
-  </button>
+  <button class="btn-main" onclick="createTrip()">🚀 สร้าง Trip & รับ Code</button>
 </div>
 
-<!-- หน้าแสดง Code หลังสร้าง -->
+<!-- หน้าแสดง Code -->
 <div id="screen-created" class="body hidden">
   <div style="font-size:16px;font-weight:600;margin-bottom:4px">✅ สร้าง Trip แล้ว!</div>
   <div class="success-box">
@@ -185,15 +164,11 @@
     <div style="font-size:12px;color:#666">แชร์ code นี้ให้เพื่อนในกลุ่ม</div>
     <button class="copy-btn" onclick="copyCode()">📋 คัดลอก Code</button>
   </div>
-
-  <div class="card" id="created-summary">
+  <div class="card">
     <div class="card-title">สรุปเส้นทาง</div>
     <div id="created-route" style="padding:10px 14px;font-size:13px;color:#444;line-height:1.8"></div>
   </div>
-
-  <button class="btn-main" onclick="startTracking()">
-    📍 เริ่มติดตาม GPS
-  </button>
+  <button class="btn-main" onclick="startTracking()">📍 เริ่มติดตาม GPS</button>
 </div>
 
 <!-- หน้า Join -->
@@ -202,7 +177,6 @@
     <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
     <span style="font-size:16px;font-weight:600">Join Trip</span>
   </div>
-
   <div class="card" style="padding:16px">
     <div style="text-align:center;margin-bottom:14px">
       <div style="font-size:40px;margin-bottom:6px">🔗</div>
@@ -211,365 +185,364 @@
     </div>
     <input class="code-input" id="join-code-input" placeholder="TRP-XXXX" maxlength="8"
       oninput="this.value=this.value.toUpperCase()" />
-    <button class="btn-main" onclick="searchTrip()" style="border-radius:10px;padding:12px;margin-top:10px">
-      🔍 ค้นหา Trip
-    </button>
+    <button class="btn-main" onclick="searchTrip()" style="border-radius:10px;padding:12px;margin-top:10px">🔍 ค้นหา Trip</button>
   </div>
-
   <div id="join-result" class="hidden">
     <div class="result-card">
       <div class="result-title">✅ พบ Trip!</div>
       <div class="result-route" id="join-route-text"></div>
       <div class="result-sub" id="join-sub-text"></div>
-      <div class="stat-row" id="join-stats"></div>
     </div>
-
-    <div class="card" style="margin-top:0">
+    <div class="card">
       <div class="card-title">เลือกคันที่คุณอยู่</div>
       <div class="car-grid" id="join-car-grid"></div>
     </div>
-
-    <button class="btn-main" onclick="joinTrip()">
-      ✅ Join Trip นี้
-    </button>
+    <button class="btn-main" onclick="joinTrip()">✅ Join Trip นี้</button>
   </div>
 </div>
 
-<!-- ─── Search Modal ─── -->
+<!-- Search Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeSearchModal()">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">ค้นหาสถานที่</div>
+      <div class="modal-title-row">
+        <div class="modal-title" id="modal-title">ค้นหาสถานที่</div>
+        <button class="modal-close" onclick="closeSearchModal()">×</button>
+      </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input class="modal-search" id="modal-search-input"
-          placeholder="พิมพ์ชื่อสถานที่ เช่น พัทยา ชลบุรี"
+          placeholder="พิมพ์ชื่อสถานที่ เช่น พัทยา สยาม"
           autocomplete="off" autocorrect="off" spellcheck="false" />
         <div class="search-spinner" id="search-spinner"></div>
+        <button class="clear-btn" id="clear-btn" onclick="clearSearch()">×</button>
       </div>
     </div>
     <div class="modal-body">
-      <div class="search-results" id="search-results">
+      <div id="search-results">
         <div class="search-hint">
-          <div class="search-hint-icon">📍</div>
-          <div>พิมพ์ชื่อสถานที่<br>เช่น "สยาม" "พัทยา" "เชียงใหม่"</div>
+          <div class="search-hint-icon">🗺️</div>
+          <div>พิมพ์ชื่อสถานที่<br>เช่น "พัทยา" "เชียงใหม่" "สยามพารากอน"</div>
         </div>
       </div>
     </div>
+    <div class="google-attr" id="google-attr" style="display:none">powered by Google</div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  const BASE = window.location.origin;
-  const params = new URLSearchParams(window.location.search);
-  const LIFF_ID  = params.get('liffId')  || '';
-  const GROUP_ID = params.get('groupId') || '';
+const BASE      = window.location.origin;
+const urlParams = new URLSearchParams(window.location.search);
+const LIFF_ID   = urlParams.get('liffId')  || '';
+const GROUP_ID  = urlParams.get('groupId') || '';
 
-  // state.origin / destination เป็น {name, lat, lon} หรือ null
-  let state = {
-    userId: null,
-    displayName: null,
-    origin: null,
-    waypoints: [],        // [{name, lat, lon}]
-    destination: null,
-    selectedCar: 'A',
-    tripCode: null,
-    foundTrip: null,
-    joinCarId: 'B',
-  };
+let state = {
+  userId: null, displayName: null,
+  origin: null, waypoints: [], destination: null,
+  selectedCar: 'A', tripCode: null,
+  foundTrip: null, joinCarId: 'B',
+};
 
-  // ─── LIFF Init ───────────────────────────────────────────────
-  async function initLiff() {
-    try {
-      await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
-      if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile();
-        state.userId = profile.userId;
-        state.displayName = profile.displayName;
-      } else {
-        liff.login();
-      }
-    } catch (e) {
-      console.warn('LIFF init failed (dev mode):', e.message);
-      state.userId = 'dev-user-' + Date.now();
-      state.displayName = 'ผู้ทดสอบ';
-    }
-  }
-  initLiff();
+// ─── Google Maps ─────────────────────────────────────────────
+let autoSvc = null, placesSvc = null, mapsReady = false;
 
-  // ─── Screen Nav ──────────────────────────────────────────────
-  function showScreen(id) {
-    ['screen-main','screen-create','screen-created','screen-join'].forEach(s => {
-      document.getElementById(s).classList.add('hidden');
+async function loadGoogleMaps() {
+  try {
+    const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
+    if (!cfg.mapsKey) throw new Error('no key');
+
+    await new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${cfg.mapsKey}&libraries=places&language=th`;
+      s.onload = ok; s.onerror = fail;
+      document.head.appendChild(s);
     });
-    document.getElementById(id).classList.remove('hidden');
+
+    const el = Object.assign(document.createElement('div'), { style: 'display:none' });
+    document.body.appendChild(el);
+    autoSvc   = new google.maps.places.AutocompleteService();
+    placesSvc = new google.maps.places.PlacesService(el);
+    mapsReady = true;
+    document.getElementById('google-attr').style.display = 'block';
+    console.log('Google Maps Places ready');
+  } catch (e) {
+    console.warn('Google Maps failed, using Nominatim fallback:', e.message);
+    mapsReady = false;
   }
+  // ปลดล็อกปุ่มสร้าง trip
+  const btn = document.getElementById('btn-create');
+  btn.disabled = false;
+  btn.textContent = '➕ สร้าง Trip ใหม่';
+}
 
-  // ─── Search Modal ─────────────────────────────────────────────
-  let modalTarget = null;
-  let searchDebounceTimer = null;
-  let currentSearchResults = [];
-
-  const PIN_ICONS = { origin: '🔵', waypoint: '📍', destination: '🏁' };
-  const MODAL_TITLES = { origin: 'จุดเริ่มต้น', waypoint: 'จุดแวะระหว่างทาง', destination: 'จุดหมายปลายทาง' };
-
-  function openSearchModal(target) {
-    modalTarget = target;
-    document.getElementById('modal-title').textContent = MODAL_TITLES[target] || 'ค้นหาสถานที่';
-    document.getElementById('modal-search-input').value = '';
-    document.getElementById('search-results').innerHTML = `
-      <div class="search-hint">
-        <div class="search-hint-icon">📍</div>
-        <div>พิมพ์ชื่อสถานที่<br>เช่น "สยาม" "พัทยา" "เชียงใหม่"</div>
-      </div>`;
-    document.getElementById('search-spinner').classList.remove('show');
-    document.getElementById('modal-overlay').classList.add('open');
-    setTimeout(() => document.getElementById('modal-search-input').focus(), 350);
+// ─── LIFF ────────────────────────────────────────────────────
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
+    if (liff.isLoggedIn()) {
+      const p = await liff.getProfile();
+      state.userId = p.userId; state.displayName = p.displayName;
+    } else { liff.login(); }
+  } catch (e) {
+    console.warn('LIFF dev mode:', e.message);
+    state.userId = 'dev-' + Date.now(); state.displayName = 'ผู้ทดสอบ';
   }
+}
 
-  function closeSearchModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
-    modalTarget = null;
-    clearTimeout(searchDebounceTimer);
-  }
+Promise.all([initLiff(), loadGoogleMaps()]);
 
-  document.getElementById('modal-search-input').addEventListener('input', function () {
-    clearTimeout(searchDebounceTimer);
-    const q = this.value.trim();
-    if (q.length < 2) {
-      document.getElementById('search-results').innerHTML = `
-        <div class="search-hint">
-          <div class="search-hint-icon">📍</div>
-          <div>พิมพ์ชื่อสถานที่<br>เช่น "สยาม" "พัทยา" "เชียงใหม่"</div>
-        </div>`;
+// ─── Screen Nav ──────────────────────────────────────────────
+function showScreen(id) {
+  ['screen-main','screen-create','screen-created','screen-join']
+    .forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ─── Search Modal ─────────────────────────────────────────────
+let modalTarget = null, searchTimer = null, pendingPreds = [];
+
+const TITLES = { origin:'จุดเริ่มต้น', waypoint:'จุดแวะระหว่างทาง', destination:'จุดหมายปลายทาง' };
+
+function openSearchModal(t) {
+  modalTarget = t;
+  document.getElementById('modal-title').textContent = TITLES[t];
+  document.getElementById('modal-search-input').value = '';
+  document.getElementById('clear-btn').classList.remove('show');
+  document.getElementById('search-spinner').classList.remove('show');
+  showHint();
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('modal-search-input').focus(), 350);
+}
+
+function closeSearchModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  clearTimeout(searchTimer); modalTarget = null;
+}
+
+function clearSearch() {
+  document.getElementById('modal-search-input').value = '';
+  document.getElementById('clear-btn').classList.remove('show');
+  showHint();
+  document.getElementById('modal-search-input').focus();
+}
+
+function showHint() {
+  document.getElementById('search-results').innerHTML = `
+    <div class="search-hint"><div class="search-hint-icon">🗺️</div>
+    <div>พิมพ์ชื่อสถานที่<br>เช่น "พัทยา" "เชียงใหม่" "สยามพารากอน"</div></div>`;
+}
+
+document.getElementById('modal-search-input').addEventListener('input', function() {
+  const q = this.value.trim();
+  document.getElementById('clear-btn').classList.toggle('show', q.length > 0);
+  clearTimeout(searchTimer);
+  if (q.length < 2) { showHint(); return; }
+  document.getElementById('search-spinner').classList.add('show');
+  searchTimer = setTimeout(() => mapsReady ? doGoogleSearch(q) : doNominatimSearch(q), 350);
+});
+
+// ── Google Places ─────────────────────────────────────────────
+function doGoogleSearch(q) {
+  autoSvc.getPlacePredictions(
+    { input: q, componentRestrictions: { country: 'th' }, language: 'th' },
+    (preds, status) => {
       document.getElementById('search-spinner').classList.remove('show');
-      return;
-    }
-    document.getElementById('search-spinner').classList.add('show');
-    searchDebounceTimer = setTimeout(() => doPlaceSearch(q), 380);
-  });
-
-  async function doPlaceSearch(query) {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&accept-language=th&addressdetails=1&countrycodes=th`;
-      const resp = await fetch(url, {
-        headers: { 'Accept-Language': 'th,en', 'User-Agent': 'TripWeatherBot/1.0' }
-      });
-      const results = await resp.json();
-      document.getElementById('search-spinner').classList.remove('show');
-
-      if (!results.length) {
-        document.getElementById('search-results').innerHTML = `
-          <div class="no-results">ไม่พบสถานที่ที่ค้นหา<br>ลองเปลี่ยนคำค้นหาครับ</div>`;
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !preds?.length) {
+        document.getElementById('search-results').innerHTML =
+          '<div class="no-results">ไม่พบสถานที่ที่ค้นหา<br>ลองเปลี่ยนคำค้นหาครับ</div>';
         return;
       }
-
-      currentSearchResults = results.map(r => {
-        // สร้างชื่อแสดง: ชื่อหลัก + จังหวัด
-        const addr = r.address || {};
-        const mainName = r.name || addr.road || addr.city || addr.county || r.display_name.split(',')[0];
-        const region = [addr.city, addr.county, addr.state]
-          .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' · ');
-        const icon = getPlaceIcon(r.type || r.class, addr);
-        return { name: mainName, addr: region || r.display_name, lat: parseFloat(r.lat), lon: parseFloat(r.lon), icon };
-      });
-
-      const html = currentSearchResults.map((item, i) => `
-        <div class="result-item" onclick="selectPlace(${i})">
-          <div class="result-pin">${item.icon}</div>
+      pendingPreds = preds;
+      document.getElementById('search-results').innerHTML = preds.map((p, i) => `
+        <div class="result-item" onclick="selectGooglePlace(${i})">
+          <div class="result-pin">${placeIcon(p.types)}</div>
           <div class="result-info">
-            <div class="result-name">${item.name}</div>
-            <div class="result-addr">${item.addr}</div>
+            <div class="result-name">${p.structured_formatting?.main_text || p.description}</div>
+            <div class="result-addr">${p.structured_formatting?.secondary_text || ''}</div>
           </div>
           <div class="result-chevron">›</div>
-        </div>
-      `).join('');
-      document.getElementById('search-results').innerHTML = html;
+        </div>`).join('');
+    }
+  );
+}
 
-    } catch (e) {
+function selectGooglePlace(i) {
+  const pred = pendingPreds[i]; if (!pred) return;
+  document.getElementById('search-spinner').classList.add('show');
+  placesSvc.getDetails(
+    { placeId: pred.place_id, fields: ['name','geometry','formatted_address'] },
+    (place, status) => {
       document.getElementById('search-spinner').classList.remove('show');
-      document.getElementById('search-results').innerHTML = `
-        <div class="no-results">เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง</div>`;
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry)
+        return showToast('ดึงพิกัดไม่ได้ ลองใหม่อีกครั้ง');
+      applyPlace(
+        { name: place.name, lat: place.geometry.location.lat(), lon: place.geometry.location.lng() },
+        pred.structured_formatting?.secondary_text || place.formatted_address || ''
+      );
     }
-  }
+  );
+}
 
-  function getPlaceIcon(type, addr) {
-    if (['hospital','clinic'].includes(type)) return '🏥';
-    if (['school','university'].includes(type)) return '🏫';
-    if (['fuel'].includes(type)) return '⛽';
-    if (['hotel','guest_house'].includes(type)) return '🏨';
-    if (['restaurant','fast_food','cafe'].includes(type)) return '🍽️';
-    if (['city','town','village'].includes(type)) return '🏙️';
-    if (addr.city || addr.town) return '🏙️';
-    return '📍';
-  }
-
-  function selectPlace(index) {
-    const place = currentSearchResults[index];
-    if (!place) return;
-
-    const obj = { name: place.name, lat: place.lat, lon: place.lon };
-
-    if (modalTarget === 'origin') {
-      state.origin = obj;
-      const el = document.getElementById('origin-display');
-      el.textContent = place.name;
-      el.classList.remove('placeholder');
-      document.getElementById('origin-sub').textContent = place.addr;
-    } else if (modalTarget === 'destination') {
-      state.destination = obj;
-      const el = document.getElementById('destination-display');
-      el.textContent = place.name;
-      el.classList.remove('placeholder');
-      document.getElementById('destination-sub').textContent = place.addr;
-    } else if (modalTarget === 'waypoint') {
-      state.waypoints.push(obj);
-      renderWaypoints();
+// ── Nominatim fallback ────────────────────────────────────────
+let _nomItems = [];
+async function doNominatimSearch(q) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=th&addressdetails=1&countrycodes=th`,
+      { headers: { 'User-Agent': 'TripWeatherBot/1.0' } }
+    ).then(r => r.json());
+    document.getElementById('search-spinner').classList.remove('show');
+    if (!r.length) {
+      document.getElementById('search-results').innerHTML =
+        '<div class="no-results">ไม่พบสถานที่ที่ค้นหา</div>'; return;
     }
-
-    closeSearchModal();
+    _nomItems = r.map(x => {
+      const a = x.address || {};
+      const name = x.name || a.road || a.city || x.display_name.split(',')[0];
+      const addr = [a.city, a.county, a.state].filter(Boolean).filter((v,i,arr)=>arr.indexOf(v)===i).join(' · ');
+      return { name, addr: addr || x.display_name, lat: +x.lat, lon: +x.lon, types: [x.type] };
+    });
+    document.getElementById('search-results').innerHTML = _nomItems.map((it, i) => `
+      <div class="result-item" onclick="selectNomItem(${i})">
+        <div class="result-pin">${placeIcon(it.types)}</div>
+        <div class="result-info">
+          <div class="result-name">${it.name}</div>
+          <div class="result-addr">${it.addr}</div>
+        </div>
+        <div class="result-chevron">›</div>
+      </div>`).join('');
+  } catch {
+    document.getElementById('search-spinner').classList.remove('show');
+    document.getElementById('search-results').innerHTML =
+      '<div class="no-results">เกิดข้อผิดพลาด กรุณาลองใหม่</div>';
   }
+}
+function selectNomItem(i) {
+  const it = _nomItems[i]; if (!it) return;
+  applyPlace({ name: it.name, lat: it.lat, lon: it.lon }, it.addr);
+}
 
-  function renderWaypoints() {
-    const list = document.getElementById('waypoint-list');
-    if (!state.waypoints.length) {
-      list.innerHTML = '';
-      return;
-    }
-    list.innerHTML = state.waypoints.map((wp, i) => `
-      <div class="wp-item">
-        <div class="wp-dot"></div>
-        <div class="wp-name">${wp.name}</div>
-        <div class="wp-del" onclick="removeWaypoint(${i})">✕</div>
-      </div>
-    `).join('');
+// ── Apply & Icon ──────────────────────────────────────────────
+function applyPlace(obj, addr) {
+  if (modalTarget === 'origin') {
+    state.origin = obj;
+    const el = document.getElementById('origin-display');
+    el.textContent = obj.name; el.classList.remove('placeholder');
+    document.getElementById('origin-sub').textContent = addr;
+  } else if (modalTarget === 'destination') {
+    state.destination = obj;
+    const el = document.getElementById('destination-display');
+    el.textContent = obj.name; el.classList.remove('placeholder');
+    document.getElementById('destination-sub').textContent = addr;
+  } else if (modalTarget === 'waypoint') {
+    state.waypoints.push(obj); renderWaypoints();
   }
+  closeSearchModal();
+}
 
-  function removeWaypoint(i) {
-    state.waypoints.splice(i, 1);
-    renderWaypoints();
-  }
+function placeIcon(types = []) {
+  const t = types.join(' ');
+  if (/hospital|clinic|health/.test(t))           return '🏥';
+  if (/school|university/.test(t))                return '🏫';
+  if (/gas_station|fuel/.test(t))                 return '⛽';
+  if (/lodging|hotel/.test(t))                    return '🏨';
+  if (/restaurant|food|cafe/.test(t))             return '🍽️';
+  if (/airport/.test(t))                          return '✈️';
+  if (/train|transit/.test(t))                    return '🚉';
+  if (/shopping|store/.test(t))                   return '🛍️';
+  if (/park|natural/.test(t))                     return '🌳';
+  if (/locality|city|town|administrative/.test(t)) return '🏙️';
+  return '📍';
+}
 
-  // ─── Car Select ──────────────────────────────────────────────
-  function selectCar(id) {
-    state.selectedCar = id;
-    document.getElementById('car-a-btn').className = 'car-btn' + (id === 'A' ? ' sel-a' : '');
-    document.getElementById('car-b-btn').className = 'car-btn' + (id === 'B' ? ' sel-b' : '');
-  }
+// ─── Waypoints ────────────────────────────────────────────────
+function renderWaypoints() {
+  document.getElementById('waypoint-list').innerHTML = state.waypoints.map((wp, i) => `
+    <div class="wp-item">
+      <div class="wp-dot"></div>
+      <div class="wp-name">${wp.name}</div>
+      <div class="wp-del" onclick="removeWaypoint(${i})">✕</div>
+    </div>`).join('');
+}
+function removeWaypoint(i) { state.waypoints.splice(i, 1); renderWaypoints(); }
 
-  // ─── Create Trip ─────────────────────────────────────────────
-  async function createTrip() {
-    if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้น');
-    if (!state.destination) return showToast('กรุณาเลือกจุดหมาย');
+// ─── Car Select ───────────────────────────────────────────────
+function selectCar(id) {
+  state.selectedCar = id;
+  document.getElementById('car-a-btn').className = 'car-btn' + (id==='A'?' sel-a':'');
+  document.getElementById('car-b-btn').className = 'car-btn' + (id==='B'?' sel-b':'');
+}
 
-    try {
-      const resp = await fetch(`${BASE}/api/trip/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: state.userId,
-          groupId: GROUP_ID,
-          carId: state.selectedCar,
-          origin: state.origin,               // {name, lat, lon}
-          waypoints: state.waypoints,          // [{name, lat, lon}]
-          destination: state.destination,     // {name, lat, lon}
-        }),
-      });
-      const data = await resp.json();
-      state.tripCode = data.tripCode;
+// ─── Create Trip ──────────────────────────────────────────────
+async function createTrip() {
+  if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้น');
+  if (!state.destination) return showToast('กรุณาเลือกจุดหมาย');
+  try {
+    const data = await fetch(`${BASE}/api/trip/create`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId:state.userId, groupId:GROUP_ID, carId:state.selectedCar,
+        origin:state.origin, waypoints:state.waypoints, destination:state.destination }),
+    }).then(r => r.json());
+    state.tripCode = data.tripCode;
+    document.getElementById('created-code').textContent = data.tripCode;
+    document.getElementById('created-route').innerHTML =
+      `🔵 ${state.origin.name}<br>` +
+      state.waypoints.map(w=>`🟡 ${w.name}<br>`).join('') +
+      `🏁 ${state.destination.name}`;
+    showScreen('screen-created');
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
 
-      document.getElementById('created-code').textContent = data.tripCode;
-      document.getElementById('created-route').innerHTML =
-        `🔵 ${state.origin.name}<br>` +
-        state.waypoints.map(w => `🟡 ${w.name}<br>`).join('') +
-        `🏁 ${state.destination.name}`;
+function copyCode() {
+  navigator.clipboard.writeText(state.tripCode).then(() => showToast('คัดลอก code แล้ว!'));
+}
 
-      showScreen('screen-created');
-    } catch (e) {
-      showToast('เกิดข้อผิดพลาด: ' + e.message);
-    }
-  }
+function startTracking() {
+  window.location.href = `${BASE}/liff/tracker.html?liffId=${LIFF_ID}&groupId=${GROUP_ID}&tripCode=${state.tripCode}&carId=${state.selectedCar}&userId=${state.userId}`;
+}
 
-  // ─── Copy Code ───────────────────────────────────────────────
-  function copyCode() {
-    navigator.clipboard.writeText(state.tripCode).then(() => showToast('คัดลอก code แล้ว!'));
-  }
+// ─── Join Trip ────────────────────────────────────────────────
+async function searchTrip() {
+  const code = document.getElementById('join-code-input').value.trim();
+  if (code.length < 4) return showToast('กรุณากรอก code ให้ครบ');
+  try {
+    const resp = await fetch(`${BASE}/api/trip/${code}`);
+    if (!resp.ok) return showToast('ไม่พบ Trip นี้');
+    const trip = await resp.json(); state.foundTrip = trip;
+    const oName = trip.origin?.name ?? trip.origin ?? '?';
+    const dName = trip.destination?.name ?? trip.destination ?? '?';
+    document.getElementById('join-route-text').textContent = `${oName} → ${dName}`;
+    document.getElementById('join-sub-text').textContent = `${trip.waypoints.length} จุดแวะ`;
+    document.getElementById('join-car-grid').innerHTML = Object.entries(trip.cars).map(([id,car]) => {
+      const taken = car.members.length > 0, isSel = id === state.joinCarId;
+      return `<div class="car-btn ${isSel?'sel-b':''}" onclick="selectJoinCar('${id}')" style="${taken&&!isSel?'opacity:0.55':''}">
+        <div class="car-btn-icon">${id==='A'?'🚗':'🚙'}</div>
+        <div class="car-btn-name">คัน ${id}</div>
+        <div class="car-btn-sub">${taken?car.members.length+' คน':'ว่างอยู่'}</div></div>`;
+    }).join('');
+    document.getElementById('join-result').classList.remove('hidden');
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
+function selectJoinCar(id) { state.joinCarId = id; searchTrip(); }
+async function joinTrip() {
+  if (!state.foundTrip) return;
+  try {
+    await fetch(`${BASE}/api/trip/join`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId:state.userId, tripCode:state.foundTrip.tripCode, carId:state.joinCarId }),
+    });
+    state.tripCode = state.foundTrip.tripCode; startTracking();
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
 
-  // ─── Start Tracking ──────────────────────────────────────────
-  function startTracking() {
-    const url = `${BASE}/liff/tracker.html?liffId=${LIFF_ID}&groupId=${GROUP_ID}&tripCode=${state.tripCode}&carId=${state.selectedCar}&userId=${state.userId}`;
-    window.location.href = url;
-  }
-
-  // ─── Join Trip ───────────────────────────────────────────────
-  async function searchTrip() {
-    const code = document.getElementById('join-code-input').value.trim();
-    if (code.length < 4) return showToast('กรุณากรอก code ให้ครบ');
-
-    try {
-      const resp = await fetch(`${BASE}/api/trip/${code}`);
-      if (!resp.ok) return showToast('ไม่พบ Trip นี้ ลองตรวจสอบ code อีกครั้ง');
-      const trip = await resp.json();
-      state.foundTrip = trip;
-
-      // origin/destination อาจเป็น object หรือ string (backward compat)
-      const originName      = trip.origin?.name      ?? trip.origin      ?? '?';
-      const destinationName = trip.destination?.name ?? trip.destination ?? '?';
-
-      document.getElementById('join-route-text').textContent = `${originName} → ${destinationName}`;
-      document.getElementById('join-sub-text').textContent = `${trip.waypoints.length} จุดแวะ`;
-
-      const grid = document.getElementById('join-car-grid');
-      grid.innerHTML = Object.entries(trip.cars).map(([id, car]) => {
-        const taken = car.members.length > 0;
-        const isSel = id === state.joinCarId;
-        return `<div class="car-btn ${isSel ? 'sel-b' : ''}" onclick="selectJoinCar('${id}')" style="${taken && !isSel ? 'opacity:0.55' : ''}">
-          <div class="car-btn-icon">${id === 'A' ? '🚗' : '🚙'}</div>
-          <div class="car-btn-name">คัน ${id}</div>
-          <div class="car-btn-sub">${taken ? car.members.length + ' คน' : 'ว่างอยู่'}</div>
-        </div>`;
-      }).join('');
-
-      document.getElementById('join-result').classList.remove('hidden');
-    } catch (e) {
-      showToast('เกิดข้อผิดพลาด: ' + e.message);
-    }
-  }
-
-  function selectJoinCar(id) {
-    state.joinCarId = id;
-    searchTrip();
-  }
-
-  async function joinTrip() {
-    if (!state.foundTrip) return;
-    try {
-      await fetch(`${BASE}/api/trip/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: state.userId,
-          tripCode: state.foundTrip.tripCode,
-          carId: state.joinCarId,
-        }),
-      });
-      state.tripCode = state.foundTrip.tripCode;
-      startTracking();
-    } catch (e) {
-      showToast('เกิดข้อผิดพลาด: ' + e.message);
-    }
-  }
-
-  // ─── Toast ───────────────────────────────────────────────────
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
 </script>
 </body>
 </html>
