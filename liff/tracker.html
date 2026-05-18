@@ -23,11 +23,49 @@
   .body{padding:16px;flex:1;display:flex;flex-direction:column;gap:12px}
   .card{background:#fff;border-radius:14px;padding:14px;border:0.5px solid #eee}
   .card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px}
+
+  /* GPS Stats */
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .stat-cell{background:#f8f8f8;border-radius:10px;padding:10px}
   .stat-lbl{font-size:11px;color:#888;margin-bottom:3px}
   .stat-val{font-size:18px;font-weight:700;color:#1a1a1a}
   .stat-unit{font-size:11px;color:#888;margin-left:2px}
+  .accuracy-bar{height:3px;background:#eee;border-radius:2px;margin-top:6px;overflow:hidden}
+  .accuracy-fill{height:100%;border-radius:2px;background:#1D9E75;transition:width 0.5s}
+
+  /* ETA Card */
+  .eta-card{background:#fff;border-radius:14px;padding:14px;border:0.5px solid #eee;display:none}
+  .eta-card.show{display:block}
+  .eta-dest-name{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .eta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .eta-cell{border-radius:10px;padding:10px;text-align:center}
+  .eta-cell.dist{background:#E6F1FB}
+  .eta-cell.time{background:#E1F5EE}
+  .eta-num{font-size:22px;font-weight:800;line-height:1}
+  .eta-unit{font-size:11px;margin-top:3px}
+  .eta-cell.dist .eta-num{color:#185FA5}
+  .eta-cell.dist .eta-unit{color:#378ADD}
+  .eta-cell.time .eta-num{color:#0F6E56}
+  .eta-cell.time .eta-unit{color:#1D9E75}
+  .eta-updated{font-size:10px;color:#bbb;text-align:right;margin-top:6px}
+
+  /* Waypoint list */
+  .waypoint-list{display:flex;flex-direction:column;gap:6px}
+  .wp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:#f8f8f8;transition:background 0.2s}
+  .wp-item.passed{opacity:0.5}
+  .wp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .wp-body{flex:1;min-width:0}
+  .wp-name{font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wp-dist-row{display:flex;align-items:center;gap:6px;margin-top:3px}
+  .wp-dist-pill{font-size:11px;font-weight:500;padding:1px 7px;border-radius:8px}
+  .wp-dist-pill.dist{background:#E6F1FB;color:#185FA5}
+  .wp-dist-pill.dur{background:#E1F5EE;color:#0F6E56}
+  .wp-dist-pill.passed-pill{background:#f0f0f0;color:#999}
+  .wp-dist-pill.loading{background:#f5f5f5;color:#bbb}
+  .wp-right{flex-shrink:0}
+  .wp-status{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+
+  /* Log */
   .log-list{display:flex;flex-direction:column;gap:8px}
   .log-item{display:flex;gap:10px;align-items:flex-start}
   .log-line{display:flex;flex-direction:column;align-items:center;width:14px;flex-shrink:0}
@@ -38,16 +76,10 @@
   .log-meta{font-size:11px;color:#888;margin-top:2px}
   .log-weather{font-size:11px;margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
   .log-badge{padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500}
-  .waypoint-list{display:flex;flex-direction:column;gap:6px}
-  .wp-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#f8f8f8}
-  .wp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-  .wp-name{flex:1;font-size:13px;font-weight:500}
-  .wp-status{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+
   .btn-main{background:#06C755;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
   .btn-main:active{opacity:0.85}
   .btn-main:disabled{background:#aaa;cursor:default}
-  .accuracy-bar{height:3px;background:#eee;border-radius:2px;margin-top:6px;overflow:hidden}
-  .accuracy-fill{height:100%;border-radius:2px;background:#1D9E75;transition:width 0.5s}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
 </style>
@@ -99,7 +131,24 @@
     </div>
   </div>
 
-  <!-- Waypoints Progress -->
+  <!-- ETA ถึงปลายทาง -->
+  <div class="eta-card" id="eta-card">
+    <div class="card-title">ETA ถึงปลายทาง</div>
+    <div class="eta-dest-name">🏁 <span id="eta-dest-name">—</span></div>
+    <div class="eta-grid">
+      <div class="eta-cell dist">
+        <div class="eta-num" id="eta-dist">—</div>
+        <div class="eta-unit">กิโลเมตร</div>
+      </div>
+      <div class="eta-cell time">
+        <div class="eta-num" id="eta-dur">—</div>
+        <div class="eta-unit">นาที</div>
+      </div>
+    </div>
+    <div class="eta-updated" id="eta-updated"></div>
+  </div>
+
+  <!-- Waypoints -->
   <div class="card" id="waypoint-card">
     <div class="card-title">สถานีระหว่างทาง</div>
     <div class="waypoint-list" id="waypoint-list">
@@ -124,214 +173,310 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const params = new URLSearchParams(window.location.search);
-  const LIFF_ID   = params.get('liffId') || '';
-  const GROUP_ID  = params.get('groupId') || '';
-  const TRIP_CODE = params.get('tripCode') || '';
-  const CAR_ID    = params.get('carId') || 'A';
-  const USER_ID   = params.get('userId') || ('dev-' + Date.now());
-  const BASE      = window.location.origin;
+const params   = new URLSearchParams(window.location.search);
+const LIFF_ID  = params.get('liffId')   || '';
+const GROUP_ID = params.get('groupId')  || '';
+const TRIP_CODE = params.get('tripCode') || '';
+const CAR_ID   = params.get('carId')    || 'A';
+const USER_ID  = params.get('userId')   || ('dev-' + Date.now());
+const BASE     = window.location.origin;
 
-  let watchId = null;
-  let lastDistrict = null;
-  let tripData = null;
-  let logs = [];
-  let tracking = false;
+let watchId      = null;
+let lastDistrict = null;
+let tripData     = null;
+let logs         = [];
+let tracking     = false;
 
-  // ─── Init ────────────────────────────────────────────────────
-  async function init() {
-    try {
-      await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
-    } catch (e) {
-      console.warn('LIFF init failed (dev mode)');
-    }
-    document.getElementById('header-title').textContent = `คัน ${CAR_ID} · TripWeather`;
+// ─── Distance Matrix state ─────────────────────────────────────
+let distSvc      = null;   // google.maps.DistanceMatrixService
+let distData     = {};     // { placeKey: { distKm, durMin } }
+let lastDistCall = 0;      // timestamp of last Distance Matrix call
+let lastGpsPos   = null;   // { lat, lon } สำหรับ call distance
+const DIST_INTERVAL = 3 * 60 * 1000;  // 3 นาที
 
-    if (TRIP_CODE) {
-      await loadTrip();
-    }
+// ─── Helpers: รับ name/lat/lon จาก place ที่อาจเป็น string หรือ object
+function placeName(p) { return (typeof p === 'object' && p?.name) ? p.name : (p || ''); }
+function placeCoords(p) {
+  if (typeof p === 'object' && p?.lat && p?.lon) return { lat: p.lat, lon: p.lon };
+  return null;
+}
+
+// ─── Google Maps Init ──────────────────────────────────────────
+async function loadGoogleMaps() {
+  try {
+    const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
+    if (!cfg.mapsKey) return;
+    await new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${cfg.mapsKey}&language=th`;
+      s.onload = ok; s.onerror = fail;
+      document.head.appendChild(s);
+    });
+    distSvc = new google.maps.DistanceMatrixService();
+    console.log('Distance Matrix ready');
+  } catch (e) {
+    console.warn('Google Maps load failed:', e.message);
   }
+}
 
-  async function loadTrip() {
-    try {
-      const resp = await fetch(`${BASE}/api/trip/${TRIP_CODE}`);
-      if (!resp.ok) return;
-      tripData = await resp.json();
-      document.getElementById('header-sub').textContent = `${tripData.origin} → ${tripData.destination}`;
-      renderWaypoints();
-    } catch (e) {
-      console.warn('Load trip failed:', e.message);
-    }
-  }
+// ─── Init ──────────────────────────────────────────────────────
+async function init() {
+  try { await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' }); }
+  catch (e) { console.warn('LIFF dev mode'); }
 
-  function renderWaypoints() {
-    if (!tripData) return;
-    const list = document.getElementById('waypoint-list');
-    const items = [
-      { name: tripData.origin, type: 'origin' },
-      ...tripData.waypoints.map(w => ({ name: w.name || w, type: 'waypoint' })),
-      { name: tripData.destination, type: 'destination' },
-    ];
+  document.getElementById('header-title').textContent = `คัน ${CAR_ID} · TripWeather`;
+  await Promise.all([
+    TRIP_CODE ? loadTrip() : Promise.resolve(),
+    loadGoogleMaps(),
+  ]);
+}
 
-    list.innerHTML = items.map((item, i) => {
-      const dotColor = item.type === 'origin' ? '#185FA5'
-        : item.type === 'destination' ? '#0F6E56' : '#EF9F27';
-      const passed = logs.some(l => l.district && item.name.includes(l.district.replace('อำเภอ','').trim().substring(0,3)));
-      return `
-        <div class="wp-item">
-          <div class="wp-dot" style="background:${dotColor}"></div>
-          <div class="wp-name">${item.name}</div>
-          ${passed ? '<div class="wp-status" style="background:#E1F5EE;color:#085041">ผ่านแล้ว</div>' : ''}
-        </div>
-      `;
-    }).join('');
-  }
+async function loadTrip() {
+  try {
+    const resp = await fetch(`${BASE}/api/trip/${TRIP_CODE}`);
+    if (!resp.ok) return;
+    tripData = await resp.json();
+    const oName = placeName(tripData.origin);
+    const dName = placeName(tripData.destination);
+    document.getElementById('header-sub').textContent = `${oName} → ${dName}`;
+    document.getElementById('eta-dest-name').textContent = dName;
+    renderWaypoints();
+  } catch (e) { console.warn('Load trip failed:', e.message); }
+}
 
-  // ─── Start GPS Tracking ──────────────────────────────────────
-  function startTracking() {
-    if (!navigator.geolocation) {
-      return showToast('เบราว์เซอร์ไม่รองรับ GPS');
-    }
+// ─── Distance Matrix ───────────────────────────────────────────
+async function updateDistances(lat, lon) {
+  if (!distSvc || !tripData) return;
+  const now = Date.now();
+  if (now - lastDistCall < DIST_INTERVAL) return;   // throttle 3 นาที
+  lastDistCall = now;
 
-    tracking = true;
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('start-btn').textContent = '📡 กำลังติดตาม...';
-    document.getElementById('live-dot').classList.remove('off');
-    document.getElementById('status-badge').textContent = 'Live';
-    document.getElementById('status-badge').style.background = '#E1F5EE';
-    document.getElementById('status-badge').style.color = '#085041';
+  // รวบรวม destination ทั้งหมดที่มี coords และยังไม่ผ่าน
+  const targets = [
+    ...tripData.waypoints.map((w, i) => ({ key: `wp_${i}`, name: placeName(w), coords: placeCoords(w) })),
+    { key: 'dest', name: placeName(tripData.destination), coords: placeCoords(tripData.destination) },
+  ].filter(t => t.coords && !isPassedByLog(t.name));
 
-    watchId = navigator.geolocation.watchPosition(
-      onPosition,
-      onGpsError,
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
-    );
+  if (!targets.length) return;
 
-    showToast('เริ่มติดตาม GPS แล้วครับ');
-  }
+  const origin = new google.maps.LatLng(lat, lon);
+  const destinations = targets.map(t => new google.maps.LatLng(t.coords.lat, t.coords.lon));
 
-  async function onPosition(pos) {
-    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-    const now = new Date();
+  distSvc.getDistanceMatrix(
+    {
+      origins: [origin],
+      destinations,
+      travelMode: google.maps.TravelMode.DRIVING,
+      language: 'th',
+    },
+    (resp, status) => {
+      if (status !== google.maps.DistanceMatrixStatus.OK) return;
+      const row = resp.rows?.[0]?.elements;
+      if (!row) return;
 
-    // อัปเดต UI
-    document.getElementById('stat-lat').textContent = lat.toFixed(5);
-    document.getElementById('stat-lon').textContent = lon.toFixed(5);
-    document.getElementById('stat-acc').innerHTML = `${Math.round(accuracy)}<span class="stat-unit">ม.</span>`;
-    document.getElementById('stat-updated').textContent = now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-
-    // accuracy bar
-    const accPct = Math.max(0, Math.min(100, 100 - (accuracy / 100 * 100)));
-    document.getElementById('acc-fill').style.width = accPct + '%';
-
-    // ส่งไป backend
-    try {
-      const resp = await fetch(`${BASE}/api/location`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: USER_ID, groupId: GROUP_ID, tripCode: TRIP_CODE, carId: CAR_ID, lat, lon }),
+      row.forEach((el, i) => {
+        if (el.status !== 'OK') return;
+        const t = targets[i];
+        distData[t.key] = {
+          distKm:  Math.round(el.distance.value / 1000),
+          durMin:  Math.round(el.duration.value  / 60),
+          distText: el.distance.text,
+          durText:  el.duration.text,
+        };
       });
-      const data = await resp.json();
 
-      if (data.district && data.district !== lastDistrict) {
-        lastDistrict = data.district;
-        document.getElementById('current-district').textContent = data.district;
-        document.getElementById('current-sub').textContent = `เข้าอำเภอนี้เมื่อ ${now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })} น.`;
-
-        if (data.status === 'full_sent' || data.status === 'pill_sent') {
-          const logEntry = {
-            district: data.district,
-            time: now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
-            type: data.status,
-            lat, lon,
-          };
-          logs.unshift(logEntry);
-          renderLog();
-          renderWaypoints();
-
-          const msg = data.status === 'full_sent' ? '📤 ส่งอากาศ + จราจรในกลุ่มแล้ว' : '📤 ส่งแจ้งตำแหน่งในกลุ่มแล้ว';
-          showToast(msg);
-        }
-      }
-    } catch (e) {
-      console.error('Send location error:', e.message);
+      renderWaypoints();
+      updateEtaCard();
     }
-  }
+  );
+}
 
-  function onGpsError(err) {
-    const msgs = {
-      1: 'ไม่ได้รับอนุญาตใช้ GPS กรุณาอนุญาตในเบราว์เซอร์',
-      2: 'ไม่สามารถหา GPS ได้ ลองไปที่โล่งมากขึ้น',
-      3: 'GPS timeout ลองอีกครั้ง',
-    };
-    showToast(msgs[err.code] || 'GPS error');
-    document.getElementById('live-dot').classList.add('off');
-  }
+function updateEtaCard() {
+  const dest = distData['dest'];
+  if (!dest) return;
+  document.getElementById('eta-card').classList.add('show');
+  document.getElementById('eta-dist').textContent = dest.distKm;
+  document.getElementById('eta-dur').textContent  = dest.durMin;
+  const t = new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('eta-updated').textContent = `อัปเดต ${t} น.`;
+}
 
-  function renderLog() {
-    const list = document.getElementById('log-list');
-    if (logs.length === 0) {
-      list.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px;padding:8px">ยังไม่มีข้อมูล</div>';
-      return;
+// ─── Waypoints Render ──────────────────────────────────────────
+function renderWaypoints() {
+  if (!tripData) return;
+  const list = document.getElementById('waypoint-list');
+
+  const allItems = [
+    { key: 'origin', obj: tripData.origin, type: 'origin' },
+    ...tripData.waypoints.map((w, i) => ({ key: `wp_${i}`, obj: w, type: 'waypoint' })),
+    { key: 'dest', obj: tripData.destination, type: 'destination' },
+  ];
+
+  list.innerHTML = allItems.map(item => {
+    const name = placeName(item.obj);
+    const dotColor = item.type === 'origin' ? '#185FA5'
+      : item.type === 'destination' ? '#0F6E56' : '#EF9F27';
+    const passed = isPassedByLog(name);
+    const d = distData[item.key];
+
+    let distRow = '';
+    if (passed) {
+      distRow = `<div class="wp-dist-row">
+        <span class="wp-dist-pill passed-pill">ผ่านแล้ว</span>
+      </div>`;
+    } else if (item.type === 'origin') {
+      distRow = `<div class="wp-dist-row">
+        <span class="wp-dist-pill passed-pill">จุดเริ่มต้น</span>
+      </div>`;
+    } else if (d) {
+      distRow = `<div class="wp-dist-row">
+        <span class="wp-dist-pill dist">≈${d.distKm} กม.</span>
+        <span class="wp-dist-pill dur">≈${d.durMin} นาที</span>
+      </div>`;
+    } else if (distSvc && placeCoords(item.obj) && tracking) {
+      distRow = `<div class="wp-dist-row">
+        <span class="wp-dist-pill loading">กำลังคำนวณ...</span>
+      </div>`;
     }
-    list.innerHTML = logs.map((log, i) => {
-      const isLast = i === logs.length - 1;
-      const dotColor = log.type === 'full_sent' ? '#185FA5' : '#1D9E75';
-      const badge = log.type === 'full_sent'
-        ? '<span class="log-badge" style="background:#E6F1FB;color:#0C447C">แจ้งอากาศ</span>'
-        : '<span class="log-badge" style="background:#E1F5EE;color:#085041">แจ้งตำแหน่ง</span>';
-      return `
-        <div class="log-item">
-          <div class="log-line">
-            <div class="log-dot" style="background:${dotColor}"></div>
-            ${!isLast ? '<div class="log-stem"></div>' : ''}
-          </div>
-          <div class="log-text">
-            <div class="log-name">${log.district}</div>
-            <div class="log-meta">${log.time} น.</div>
-            <div class="log-weather">${badge}</div>
-          </div>
+
+    return `
+      <div class="wp-item ${passed ? 'passed' : ''}">
+        <div class="wp-dot" style="background:${dotColor}"></div>
+        <div class="wp-body">
+          <div class="wp-name">${name}</div>
+          ${distRow}
         </div>
-      `;
-    }).join('');
-  }
+      </div>`;
+  }).join('');
+}
 
-  // ─── Stop ────────────────────────────────────────────────────
-  function stopTracking() {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
-    }
-    tracking = false;
-    document.getElementById('live-dot').classList.add('off');
-    document.getElementById('status-badge').textContent = 'หยุด';
-    document.getElementById('status-badge').style.background = '#f0f0f0';
-    document.getElementById('status-badge').style.color = '#888';
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('start-btn').textContent = '📍 เริ่มติดตาม GPS อีกครั้ง';
-    showToast('หยุดติดตาม GPS แล้วครับ');
-  }
+// ─── GPS Tracking ──────────────────────────────────────────────
+function startTracking() {
+  if (!navigator.geolocation) return showToast('เบราว์เซอร์ไม่รองรับ GPS');
+  tracking = true;
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = '📡 กำลังติดตาม...';
+  document.getElementById('live-dot').classList.remove('off');
+  setStatusBadge('Live', '#E1F5EE', '#085041');
+  watchId = navigator.geolocation.watchPosition(onPosition, onGpsError,
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
+  showToast('เริ่มติดตาม GPS แล้วครับ');
+}
 
-  // ─── Toast ───────────────────────────────────────────────────
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  }
+async function onPosition(pos) {
+  const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+  const now = new Date();
+  lastGpsPos = { lat, lon };
 
-  // ─── Keep screen on (ป้องกันหน้าจอดับ) ─────────────────────
-  let wakeLock = null;
-  async function requestWakeLock() {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
+  // อัปเดต GPS stats
+  document.getElementById('stat-lat').textContent = lat.toFixed(5);
+  document.getElementById('stat-lon').textContent = lon.toFixed(5);
+  document.getElementById('stat-acc').innerHTML = `${Math.round(accuracy)}<span class="stat-unit">ม.</span>`;
+  document.getElementById('stat-updated').textContent = now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const accPct = Math.max(0, Math.min(100, 100 - (accuracy / 100 * 100)));
+  document.getElementById('acc-fill').style.width = accPct + '%';
+
+  // อัปเดต distance (throttled)
+  updateDistances(lat, lon);
+
+  // ส่งไป backend
+  try {
+    const resp = await fetch(`${BASE}/api/location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: USER_ID, groupId: GROUP_ID, tripCode: TRIP_CODE, carId: CAR_ID, lat, lon }),
+    });
+    const data = await resp.json();
+
+    if (data.district && data.district !== lastDistrict) {
+      lastDistrict = data.district;
+      document.getElementById('current-district').textContent = data.district;
+      document.getElementById('current-sub').textContent = `เข้าอำเภอนี้เมื่อ ${now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })} น.`;
+
+      if (data.status === 'full_sent' || data.status === 'pill_sent') {
+        logs.unshift({ district: data.district, time: now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }), type: data.status, lat, lon });
+        renderLog();
+        // รีเซ็ต distance cache → force recalc ใน update ถัดไป
+        lastDistCall = 0;
+        renderWaypoints();
+        showToast(data.status === 'full_sent' ? '📤 ส่งอากาศ + จราจรในกลุ่มแล้ว' : '📤 ส่งแจ้งตำแหน่งในกลุ่มแล้ว');
       }
-    } catch (e) {}
-  }
-  requestWakeLock();
+    }
+  } catch (e) { console.error('Send location error:', e.message); }
+}
 
-  init();
+function onGpsError(err) {
+  const msgs = { 1:'ไม่ได้รับอนุญาตใช้ GPS', 2:'หา GPS ไม่ได้ ลองไปที่โล่ง', 3:'GPS timeout' };
+  showToast(msgs[err.code] || 'GPS error');
+  document.getElementById('live-dot').classList.add('off');
+}
+
+// ─── Log Render ────────────────────────────────────────────────
+function renderLog() {
+  const list = document.getElementById('log-list');
+  if (!logs.length) {
+    list.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px;padding:8px">ยังไม่มีข้อมูล</div>';
+    return;
+  }
+  list.innerHTML = logs.map((log, i) => {
+    const isLast = i === logs.length - 1;
+    const dotColor = log.type === 'full_sent' ? '#185FA5' : '#1D9E75';
+    const badge = log.type === 'full_sent'
+      ? '<span class="log-badge" style="background:#E6F1FB;color:#0C447C">แจ้งอากาศ</span>'
+      : '<span class="log-badge" style="background:#E1F5EE;color:#085041">แจ้งตำแหน่ง</span>';
+    return `
+      <div class="log-item">
+        <div class="log-line">
+          <div class="log-dot" style="background:${dotColor}"></div>
+          ${!isLast ? '<div class="log-stem"></div>' : ''}
+        </div>
+        <div class="log-text">
+          <div class="log-name">${log.district}</div>
+          <div class="log-meta">${log.time} น.</div>
+          <div class="log-weather">${badge}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ─── Stop ──────────────────────────────────────────────────────
+function stopTracking() {
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  tracking = false;
+  document.getElementById('live-dot').classList.add('off');
+  setStatusBadge('หยุด', '#f0f0f0', '#888');
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('start-btn').textContent = '📍 เริ่มติดตาม GPS อีกครั้ง';
+  showToast('หยุดติดตาม GPS แล้วครับ');
+}
+
+// ─── Helpers ───────────────────────────────────────────────────
+function isPassedByLog(name) {
+  if (!name) return false;
+  return logs.some(l => l.district && name.includes(
+    l.district.replace('อำเภอ','').trim().substring(0,3)
+  ));
+}
+
+function setStatusBadge(text, bg, color) {
+  const el = document.getElementById('status-badge');
+  el.textContent = text; el.style.background = bg; el.style.color = color;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Wake Lock ─────────────────────────────────────────────────
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }
+  catch (e) {}
+}
+requestWakeLock();
+
+init();
 </script>
 </body>
 </html>
