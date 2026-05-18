@@ -1,1 +1,446 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripWeather — Setup</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+  .header{background:#06C755;padding:16px;display:flex;align-items:center;gap:10px}
+  .header-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .header h1{color:#fff;font-size:16px;font-weight:600}
+  .header p{color:rgba(255,255,255,0.8);font-size:12px;margin-top:1px}
+  .body{padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid #e8e8e8}
+  .card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;padding:12px 14px 4px}
+  .field-row{display:flex;align-items:center;padding:10px 14px;gap:10px;border-bottom:0.5px solid #f0f0f0;cursor:pointer}
+  .field-row:last-child{border-bottom:none}
+  .field-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .field-text{flex:1}
+  .field-name{font-size:14px;font-weight:500;color:#1a1a1a}
+  .field-sub{font-size:12px;color:#888;margin-top:2px}
+  .field-chevron{color:#ccc;font-size:16px}
+  .waypoint-list{padding:0}
+  .wp-item{display:flex;align-items:center;padding:10px 14px;gap:10px;border-bottom:0.5px solid #f0f0f0}
+  .wp-dot{width:10px;height:10px;border-radius:50%;background:#EF9F27;flex-shrink:0;margin-left:11px}
+  .wp-name{flex:1;font-size:14px;font-weight:500;color:#1a1a1a}
+  .wp-meta{font-size:11px;color:#888}
+  .wp-del{color:#ccc;font-size:18px;padding:4px;cursor:pointer}
+  .add-wp{display:flex;align-items:center;gap:8px;padding:11px 14px;color:#185FA5;font-size:13px;font-weight:500;cursor:pointer;background:#f8fbff;border:1.5px dashed #b5d4f4;border-radius:12px}
+  .add-wp svg{flex-shrink:0}
+  .car-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .car-btn{border:1.5px solid #e8e8e8;border-radius:12px;padding:10px;cursor:pointer;text-align:center;background:#fff;transition:all 0.15s}
+  .car-btn.sel-a{border-color:#378ADD;background:#E6F1FB}
+  .car-btn.sel-b{border-color:#1D9E75;background:#E1F5EE}
+  .car-btn-icon{font-size:20px;margin-bottom:4px}
+  .car-btn-name{font-size:12px;font-weight:600;color:#1a1a1a}
+  .car-btn-sub{font-size:11px;color:#888;margin-top:1px}
+  .btn-main{background:#06C755;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-main:active{opacity:0.85}
+  .btn-secondary{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:14px;padding:13px;font-size:15px;font-weight:500;width:100%;cursor:pointer;text-align:center}
+  .divider{display:flex;align-items:center;gap:10px;color:#aaa;font-size:12px}
+  .divider::before,.divider::after{content:'';flex:1;height:0.5px;background:#e8e8e8}
+  .code-input{background:#f5f5f5;border:1.5px solid #e8e8e8;border-radius:12px;padding:14px;font-size:22px;font-weight:700;width:100%;text-align:center;letter-spacing:0.15em;color:#1a1a1a;outline:none}
+  .code-input:focus{border-color:#06C755}
+  .result-card{background:#fff;border-radius:14px;border:1.5px solid #06C755;padding:14px}
+  .result-title{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .result-route{font-size:14px;font-weight:500;color:#1a1a1a}
+  .result-sub{font-size:12px;color:#666;margin-top:3px}
+  .stat-row{display:flex;gap:8px;margin-top:10px}
+  .stat-pill{flex:1;background:#f5f5f5;border-radius:8px;padding:6px;text-align:center}
+  .stat-num{font-size:14px;font-weight:700;color:#1a1a1a}
+  .stat-lbl{font-size:10px;color:#888;margin-top:1px}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;z-index:100}
+  .modal{background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%}
+  .modal h3{font-size:16px;font-weight:600;margin-bottom:14px}
+  .modal input{width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:12px;font-size:15px;outline:none;margin-bottom:10px}
+  .modal input:focus{border-color:#06C755}
+  .modal-actions{display:flex;gap:8px}
+  .modal-cancel{flex:1;padding:12px;border:1px solid #e8e8e8;border-radius:10px;background:#fff;font-size:14px;cursor:pointer}
+  .modal-confirm{flex:2;padding:12px;border:none;border-radius:10px;background:#06C755;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  .hidden{display:none!important}
+  .success-box{background:#E1F5EE;border-radius:12px;padding:14px;text-align:center}
+  .success-code{font-size:28px;font-weight:800;color:#0F6E56;letter-spacing:0.15em;margin:6px 0}
+  .copy-btn{background:#0F6E56;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-top:8px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;white-space:nowrap}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🌤</div>
+  <div>
+    <h1>TripWeather</h1>
+    <p>แจ้งอากาศ + จราจร เมื่อข้ามอำเภอ</p>
+  </div>
+</div>
+
+<!-- หน้าหลัก: เลือกสร้างหรือ join -->
+<div id="screen-main" class="body">
+  <button class="btn-main" onclick="showScreen('screen-create')">
+    ➕ สร้าง Trip ใหม่
+  </button>
+  <div class="divider">หรือ</div>
+  <button class="btn-secondary" onclick="showScreen('screen-join')">
+    🔗 Join Trip ด้วย Code
+  </button>
+</div>
+
+<!-- หน้าสร้าง Trip -->
+<div id="screen-create" class="body hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
+    <span style="font-size:16px;font-weight:600">สร้าง Trip ใหม่</span>
+  </div>
+
+  <!-- จุดเริ่มต้น -->
+  <div class="card">
+    <div class="card-title">จุดเริ่มต้น</div>
+    <div class="field-row" onclick="openModal('origin')">
+      <div class="field-icon" style="background:#E6F1FB">🔵</div>
+      <div class="field-text">
+        <div class="field-name" id="origin-display">แตะเพื่อกรอก</div>
+        <div class="field-sub">จุดออกเดินทาง</div>
+      </div>
+      <div class="field-chevron">›</div>
+    </div>
+  </div>
+
+  <!-- Waypoints -->
+  <div class="card">
+    <div class="card-title">จุดแวะระหว่างทาง</div>
+    <div class="waypoint-list" id="waypoint-list"></div>
+  </div>
+  <div class="add-wp" onclick="openModal('waypoint')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#185FA5" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="11" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
+    เพิ่มจุดแวะ
+  </div>
+
+  <!-- ปลายทาง -->
+  <div class="card">
+    <div class="card-title">จุดหมาย</div>
+    <div class="field-row" onclick="openModal('destination')">
+      <div class="field-icon" style="background:#E1F5EE">🏁</div>
+      <div class="field-text">
+        <div class="field-name" id="destination-display">แตะเพื่อกรอก</div>
+        <div class="field-sub">จุดหมายปลายทาง</div>
+      </div>
+      <div class="field-chevron">›</div>
+    </div>
+  </div>
+
+  <!-- เลือกคัน -->
+  <div class="card">
+    <div class="card-title">คุณอยู่คันไหน</div>
+    <div class="car-grid">
+      <div class="car-btn sel-a" id="car-a-btn" onclick="selectCar('A')">
+        <div class="car-btn-icon">🚗</div>
+        <div class="car-btn-name">คัน A</div>
+        <div class="car-btn-sub" id="car-a-sub">คุณ (คนสร้าง)</div>
+      </div>
+      <div class="car-btn" id="car-b-btn" onclick="selectCar('B')">
+        <div class="car-btn-icon">🚙</div>
+        <div class="car-btn-name">คัน B</div>
+        <div class="car-btn-sub">เพื่อนจะ join</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-main" onclick="createTrip()">
+    🚀 สร้าง Trip & รับ Code
+  </button>
+</div>
+
+<!-- หน้าแสดง Code หลังสร้าง -->
+<div id="screen-created" class="body hidden">
+  <div style="font-size:16px;font-weight:600;margin-bottom:4px">✅ สร้าง Trip แล้ว!</div>
+  <div class="success-box">
+    <div style="font-size:13px;color:#0F6E56;font-weight:500">Trip Code</div>
+    <div class="success-code" id="created-code">TRP-0000</div>
+    <div style="font-size:12px;color:#666">แชร์ code นี้ให้เพื่อนในกลุ่ม</div>
+    <button class="copy-btn" onclick="copyCode()">📋 คัดลอก Code</button>
+  </div>
+
+  <div class="card" id="created-summary">
+    <div class="card-title">สรุปเส้นทาง</div>
+    <div id="created-route" style="padding:10px 14px;font-size:13px;color:#444;line-height:1.8"></div>
+  </div>
+
+  <button class="btn-main" onclick="startTracking()">
+    📍 เริ่มติดตาม GPS
+  </button>
+</div>
+
+<!-- หน้า Join -->
+<div id="screen-join" class="body hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
+    <span style="font-size:16px;font-weight:600">Join Trip</span>
+  </div>
+
+  <div class="card" style="padding:16px">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:40px;margin-bottom:6px">🔗</div>
+      <div style="font-size:14px;font-weight:500">กรอก Trip Code</div>
+      <div style="font-size:12px;color:#888;margin-top:3px">รับ code จากคนสร้าง trip</div>
+    </div>
+    <input class="code-input" id="join-code-input" placeholder="TRP-XXXX" maxlength="8"
+      oninput="this.value=this.value.toUpperCase()" />
+    <button class="btn-main" onclick="searchTrip()" style="border-radius:10px;padding:12px">
+      🔍 ค้นหา Trip
+    </button>
+  </div>
+
+  <!-- ผลการค้นหา -->
+  <div id="join-result" class="hidden">
+    <div class="result-card">
+      <div class="result-title">✅ พบ Trip!</div>
+      <div class="result-route" id="join-route-text"></div>
+      <div class="result-sub" id="join-sub-text"></div>
+      <div class="stat-row" id="join-stats"></div>
+    </div>
+
+    <div class="card" style="margin-top:0">
+      <div class="card-title">เลือกคันที่คุณอยู่</div>
+      <div class="car-grid" id="join-car-grid"></div>
+    </div>
+
+    <button class="btn-main" onclick="joinTrip()">
+      ✅ Join Trip นี้
+    </button>
+  </div>
+</div>
+
+<!-- Modal กรอกสถานที่ -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modal-title">กรอกสถานที่</h3>
+    <input id="modal-input" placeholder="ชื่อสถานที่ เช่น พัทยา ชลบุรี" />
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="modal-confirm" onclick="confirmModal()">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const BASE = window.location.origin;
+  const params = new URLSearchParams(window.location.search);
+  const LIFF_ID = params.get('liffId') || '';
+  const GROUP_ID = params.get('groupId') || '';
+
+  let state = {
+    userId: null,
+    displayName: null,
+    origin: null,
+    waypoints: [],
+    destination: null,
+    selectedCar: 'A',
+    tripCode: null,
+    foundTrip: null,
+    joinCarId: 'B',
+  };
+
+  // ─── LIFF Init ───────────────────────────────────────────────
+  async function initLiff() {
+    try {
+      await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        state.userId = profile.userId;
+        state.displayName = profile.displayName;
+      } else {
+        liff.login();
+      }
+    } catch (e) {
+      console.warn('LIFF init failed (dev mode):', e.message);
+      state.userId = 'dev-user-' + Date.now();
+      state.displayName = 'ผู้ทดสอบ';
+    }
+  }
+
+  initLiff();
+
+  // ─── Screen Nav ──────────────────────────────────────────────
+  function showScreen(id) {
+    ['screen-main','screen-create','screen-created','screen-join'].forEach(s => {
+      document.getElementById(s).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  // ─── Modal ───────────────────────────────────────────────────
+  let modalTarget = null;
+  function openModal(target) {
+    modalTarget = target;
+    const titles = { origin: 'จุดเริ่มต้น', waypoint: 'จุดแวะ', destination: 'จุดหมาย' };
+    document.getElementById('modal-title').textContent = titles[target] || 'สถานที่';
+    document.getElementById('modal-input').value = '';
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    setTimeout(() => document.getElementById('modal-input').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+    modalTarget = null;
+  }
+
+  function confirmModal() {
+    const val = document.getElementById('modal-input').value.trim();
+    if (!val) return;
+    if (modalTarget === 'origin') {
+      state.origin = val;
+      document.getElementById('origin-display').textContent = val;
+    } else if (modalTarget === 'destination') {
+      state.destination = val;
+      document.getElementById('destination-display').textContent = val;
+    } else if (modalTarget === 'waypoint') {
+      state.waypoints.push({ name: val, note: '' });
+      renderWaypoints();
+    }
+    closeModal();
+  }
+
+  function renderWaypoints() {
+    const list = document.getElementById('waypoint-list');
+    list.innerHTML = state.waypoints.map((wp, i) => `
+      <div class="wp-item">
+        <div class="wp-dot"></div>
+        <div class="wp-name">${wp.name}</div>
+        <div class="wp-del" onclick="removeWaypoint(${i})">✕</div>
+      </div>
+    `).join('');
+  }
+
+  function removeWaypoint(i) {
+    state.waypoints.splice(i, 1);
+    renderWaypoints();
+  }
+
+  // ─── Car Select ──────────────────────────────────────────────
+  function selectCar(id) {
+    state.selectedCar = id;
+    document.getElementById('car-a-btn').className = 'car-btn' + (id === 'A' ? ' sel-a' : '');
+    document.getElementById('car-b-btn').className = 'car-btn' + (id === 'B' ? ' sel-b' : '');
+  }
+
+  // ─── Create Trip ─────────────────────────────────────────────
+  async function createTrip() {
+    if (!state.origin) return showToast('กรุณากรอกจุดเริ่มต้น');
+    if (!state.destination) return showToast('กรุณากรอกจุดหมาย');
+
+    try {
+      const resp = await fetch(`${BASE}/api/trip/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: state.userId,
+          groupId: GROUP_ID,
+          carId: state.selectedCar,
+          origin: state.origin,
+          waypoints: state.waypoints,
+          destination: state.destination,
+        }),
+      });
+      const data = await resp.json();
+      state.tripCode = data.tripCode;
+
+      document.getElementById('created-code').textContent = data.tripCode;
+      const wps = state.waypoints.map(w => `  🟡 ${w.name}`).join('\n');
+      document.getElementById('created-route').innerHTML =
+        `🔵 ${state.origin}<br>${state.waypoints.map(w=>`🟡 ${w.name}<br>`).join('')}🏁 ${state.destination}`;
+
+      showScreen('screen-created');
+    } catch (e) {
+      showToast('เกิดข้อผิดพลาด: ' + e.message);
+    }
+  }
+
+  // ─── Copy Code ───────────────────────────────────────────────
+  function copyCode() {
+    navigator.clipboard.writeText(state.tripCode).then(() => showToast('คัดลอก code แล้ว!'));
+  }
+
+  // ─── Start Tracking ──────────────────────────────────────────
+  function startTracking() {
+    const url = `${BASE}/liff/tracker.html?liffId=${LIFF_ID}&groupId=${GROUP_ID}&tripCode=${state.tripCode}&carId=${state.selectedCar}&userId=${state.userId}`;
+    window.location.href = url;
+  }
+
+  // ─── Search Trip ─────────────────────────────────────────────
+  async function searchTrip() {
+    const code = document.getElementById('join-code-input').value.trim();
+    if (code.length < 4) return showToast('กรุณากรอก code ให้ครบ');
+
+    try {
+      const resp = await fetch(`${BASE}/api/trip/${code}`);
+      if (!resp.ok) return showToast('ไม่พบ Trip นี้ ลองตรวจสอบ code อีกครั้ง');
+      const trip = await resp.json();
+      state.foundTrip = trip;
+
+      document.getElementById('join-route-text').textContent = `${trip.origin} → ${trip.destination}`;
+      document.getElementById('join-sub-text').textContent = `สร้างโดย ${trip.createdBy} · ${trip.waypoints.length} จุดแวะ`;
+
+      const grid = document.getElementById('join-car-grid');
+      grid.innerHTML = Object.entries(trip.cars).map(([id, car]) => {
+        const taken = car.members.length > 0;
+        const isSel = id === state.joinCarId;
+        return `<div class="car-btn ${isSel ? 'sel-b' : ''} ${taken && !isSel ? 'opacity-50' : ''}"
+          onclick="selectJoinCar('${id}')" style="${taken ? 'opacity:0.5' : ''}">
+          <div class="car-btn-icon">${id === 'A' ? '🚗' : '🚙'}</div>
+          <div class="car-btn-name">คัน ${id}</div>
+          <div class="car-btn-sub">${taken ? car.members.length + ' คน' : 'ว่างอยู่'}</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('join-result').classList.remove('hidden');
+    } catch (e) {
+      showToast('เกิดข้อผิดพลาด: ' + e.message);
+    }
+  }
+
+  function selectJoinCar(id) {
+    state.joinCarId = id;
+    searchTrip();
+  }
+
+  // ─── Join Trip ───────────────────────────────────────────────
+  async function joinTrip() {
+    if (!state.foundTrip) return;
+    try {
+      await fetch(`${BASE}/api/trip/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: state.userId,
+          tripCode: state.foundTrip.tripCode,
+          carId: state.joinCarId,
+        }),
+      });
+      state.tripCode = state.foundTrip.tripCode;
+      startTracking();
+    } catch (e) {
+      showToast('เกิดข้อผิดพลาด: ' + e.message);
+    }
+  }
+
+  // ─── Toast ───────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  document.getElementById('modal-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmModal();
+  });
+</script>
+</body>
+</html>
 
