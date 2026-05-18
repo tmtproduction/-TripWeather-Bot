@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripWeather — ติดตาม GPS</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh;display:flex;flex-direction:column}
+  .header{background:#1a1a1a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+  .header-left{display:flex;align-items:center;gap:8px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#1D9E75;animation:blink 1.4s infinite}
+  .live-dot.off{background:#888;animation:none}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  .header-title{color:#fff;font-size:14px;font-weight:600}
+  .header-sub{color:#aaa;font-size:11px;margin-top:1px}
+  .stop-btn{background:#E24B4A;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer}
+  .status-bar{background:#fff;border-bottom:0.5px solid #eee;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+  .status-district{font-size:15px;font-weight:600;color:#1a1a1a}
+  .status-sub{font-size:12px;color:#888;margin-top:1px}
+  .status-badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .body{padding:16px;flex:1;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border-radius:14px;padding:14px;border:0.5px solid #eee}
+  .card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat-cell{background:#f8f8f8;border-radius:10px;padding:10px}
+  .stat-lbl{font-size:11px;color:#888;margin-bottom:3px}
+  .stat-val{font-size:18px;font-weight:700;color:#1a1a1a}
+  .stat-unit{font-size:11px;color:#888;margin-left:2px}
+  .log-list{display:flex;flex-direction:column;gap:8px}
+  .log-item{display:flex;gap:10px;align-items:flex-start}
+  .log-line{display:flex;flex-direction:column;align-items:center;width:14px;flex-shrink:0}
+  .log-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .log-stem{width:1.5px;flex:1;background:#eee;margin:3px 0;min-height:12px}
+  .log-text{flex:1;padding-bottom:8px}
+  .log-name{font-size:13px;font-weight:500;color:#1a1a1a}
+  .log-meta{font-size:11px;color:#888;margin-top:2px}
+  .log-weather{font-size:11px;margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
+  .log-badge{padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500}
+  .waypoint-list{display:flex;flex-direction:column;gap:6px}
+  .wp-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#f8f8f8}
+  .wp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .wp-name{flex:1;font-size:13px;font-weight:500}
+  .wp-status{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
+  .btn-main{background:#06C755;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-main:active{opacity:0.85}
+  .btn-main:disabled{background:#aaa;cursor:default}
+  .accuracy-bar{height:3px;background:#eee;border-radius:2px;margin-top:6px;overflow:hidden}
+  .accuracy-fill{height:100%;border-radius:2px;background:#1D9E75;transition:width 0.5s}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:200;white-space:nowrap;max-width:90vw;text-align:center}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="live-dot off" id="live-dot"></div>
+    <div>
+      <div class="header-title" id="header-title">TripWeather</div>
+      <div class="header-sub" id="header-sub">กำลังเริ่มต้น...</div>
+    </div>
+  </div>
+  <button class="stop-btn" onclick="stopTracking()">หยุด</button>
+</div>
+
+<div class="status-bar">
+  <div>
+    <div class="status-district" id="current-district">รอสัญญาณ GPS...</div>
+    <div class="status-sub" id="current-sub">กดเริ่มเพื่อเปิด GPS</div>
+  </div>
+  <div class="status-badge" id="status-badge" style="background:#f0f0f0;color:#888">รอ</div>
+</div>
+
+<div class="body">
+
+  <!-- GPS Stats -->
+  <div class="card">
+    <div class="card-title">GPS ปัจจุบัน</div>
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="stat-lbl">ละติจูด</div>
+        <div class="stat-val" id="stat-lat">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-lbl">ลองจิจูด</div>
+        <div class="stat-val" id="stat-lon">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-lbl">ความแม่นยำ</div>
+        <div class="stat-val" id="stat-acc">—<span class="stat-unit">ม.</span></div>
+        <div class="accuracy-bar"><div class="accuracy-fill" id="acc-fill" style="width:0%"></div></div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-lbl">อัปเดตล่าสุด</div>
+        <div class="stat-val" id="stat-updated" style="font-size:13px">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waypoints Progress -->
+  <div class="card" id="waypoint-card">
+    <div class="card-title">สถานีระหว่างทาง</div>
+    <div class="waypoint-list" id="waypoint-list">
+      <div style="text-align:center;color:#aaa;font-size:13px;padding:8px">กำลังโหลดข้อมูล trip...</div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">บันทึกการเดินทาง</div>
+    <div class="log-list" id="log-list">
+      <div style="text-align:center;color:#aaa;font-size:13px;padding:8px">ยังไม่มีข้อมูล</div>
+    </div>
+  </div>
+
+  <button class="btn-main" id="start-btn" onclick="startTracking()">
+    📍 เริ่มติดตาม GPS
+  </button>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const LIFF_ID   = params.get('liffId') || '';
+  const GROUP_ID  = params.get('groupId') || '';
+  const TRIP_CODE = params.get('tripCode') || '';
+  const CAR_ID    = params.get('carId') || 'A';
+  const USER_ID   = params.get('userId') || ('dev-' + Date.now());
+  const BASE      = window.location.origin;
+
+  let watchId = null;
+  let lastDistrict = null;
+  let tripData = null;
+  let logs = [];
+  let tracking = false;
+
+  // ─── Init ────────────────────────────────────────────────────
+  async function init() {
+    try {
+      await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
+    } catch (e) {
+      console.warn('LIFF init failed (dev mode)');
+    }
+    document.getElementById('header-title').textContent = `คัน ${CAR_ID} · TripWeather`;
+
+    if (TRIP_CODE) {
+      await loadTrip();
+    }
+  }
+
+  async function loadTrip() {
+    try {
+      const resp = await fetch(`${BASE}/api/trip/${TRIP_CODE}`);
+      if (!resp.ok) return;
+      tripData = await resp.json();
+      document.getElementById('header-sub').textContent = `${tripData.origin} → ${tripData.destination}`;
+      renderWaypoints();
+    } catch (e) {
+      console.warn('Load trip failed:', e.message);
+    }
+  }
+
+  function renderWaypoints() {
+    if (!tripData) return;
+    const list = document.getElementById('waypoint-list');
+    const items = [
+      { name: tripData.origin, type: 'origin' },
+      ...tripData.waypoints.map(w => ({ name: w.name || w, type: 'waypoint' })),
+      { name: tripData.destination, type: 'destination' },
+    ];
+
+    list.innerHTML = items.map((item, i) => {
+      const dotColor = item.type === 'origin' ? '#185FA5'
+        : item.type === 'destination' ? '#0F6E56' : '#EF9F27';
+      const passed = logs.some(l => l.district && item.name.includes(l.district.replace('อำเภอ','').trim().substring(0,3)));
+      return `
+        <div class="wp-item">
+          <div class="wp-dot" style="background:${dotColor}"></div>
+          <div class="wp-name">${item.name}</div>
+          ${passed ? '<div class="wp-status" style="background:#E1F5EE;color:#085041">ผ่านแล้ว</div>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ─── Start GPS Tracking ──────────────────────────────────────
+  function startTracking() {
+    if (!navigator.geolocation) {
+      return showToast('เบราว์เซอร์ไม่รองรับ GPS');
+    }
+
+    tracking = true;
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('start-btn').textContent = '📡 กำลังติดตาม...';
+    document.getElementById('live-dot').classList.remove('off');
+    document.getElementById('status-badge').textContent = 'Live';
+    document.getElementById('status-badge').style.background = '#E1F5EE';
+    document.getElementById('status-badge').style.color = '#085041';
+
+    watchId = navigator.geolocation.watchPosition(
+      onPosition,
+      onGpsError,
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+    );
+
+    showToast('เริ่มติดตาม GPS แล้วครับ');
+  }
+
+  async function onPosition(pos) {
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+    const now = new Date();
+
+    // อัปเดต UI
+    document.getElementById('stat-lat').textContent = lat.toFixed(5);
+    document.getElementById('stat-lon').textContent = lon.toFixed(5);
+    document.getElementById('stat-acc').innerHTML = `${Math.round(accuracy)}<span class="stat-unit">ม.</span>`;
+    document.getElementById('stat-updated').textContent = now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+    // accuracy bar
+    const accPct = Math.max(0, Math.min(100, 100 - (accuracy / 100 * 100)));
+    document.getElementById('acc-fill').style.width = accPct + '%';
+
+    // ส่งไป backend
+    try {
+      const resp = await fetch(`${BASE}/api/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: USER_ID, groupId: GROUP_ID, tripCode: TRIP_CODE, carId: CAR_ID, lat, lon }),
+      });
+      const data = await resp.json();
+
+      if (data.district && data.district !== lastDistrict) {
+        lastDistrict = data.district;
+        document.getElementById('current-district').textContent = data.district;
+        document.getElementById('current-sub').textContent = `เข้าอำเภอนี้เมื่อ ${now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })} น.`;
+
+        if (data.status === 'full_sent' || data.status === 'pill_sent') {
+          const logEntry = {
+            district: data.district,
+            time: now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
+            type: data.status,
+            lat, lon,
+          };
+          logs.unshift(logEntry);
+          renderLog();
+          renderWaypoints();
+
+          const msg = data.status === 'full_sent' ? '📤 ส่งอากาศ + จราจรในกลุ่มแล้ว' : '📤 ส่งแจ้งตำแหน่งในกลุ่มแล้ว';
+          showToast(msg);
+        }
+      }
+    } catch (e) {
+      console.error('Send location error:', e.message);
+    }
+  }
+
+  function onGpsError(err) {
+    const msgs = {
+      1: 'ไม่ได้รับอนุญาตใช้ GPS กรุณาอนุญาตในเบราว์เซอร์',
+      2: 'ไม่สามารถหา GPS ได้ ลองไปที่โล่งมากขึ้น',
+      3: 'GPS timeout ลองอีกครั้ง',
+    };
+    showToast(msgs[err.code] || 'GPS error');
+    document.getElementById('live-dot').classList.add('off');
+  }
+
+  function renderLog() {
+    const list = document.getElementById('log-list');
+    if (logs.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px;padding:8px">ยังไม่มีข้อมูล</div>';
+      return;
+    }
+    list.innerHTML = logs.map((log, i) => {
+      const isLast = i === logs.length - 1;
+      const dotColor = log.type === 'full_sent' ? '#185FA5' : '#1D9E75';
+      const badge = log.type === 'full_sent'
+        ? '<span class="log-badge" style="background:#E6F1FB;color:#0C447C">แจ้งอากาศ</span>'
+        : '<span class="log-badge" style="background:#E1F5EE;color:#085041">แจ้งตำแหน่ง</span>';
+      return `
+        <div class="log-item">
+          <div class="log-line">
+            <div class="log-dot" style="background:${dotColor}"></div>
+            ${!isLast ? '<div class="log-stem"></div>' : ''}
+          </div>
+          <div class="log-text">
+            <div class="log-name">${log.district}</div>
+            <div class="log-meta">${log.time} น.</div>
+            <div class="log-weather">${badge}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ─── Stop ────────────────────────────────────────────────────
+  function stopTracking() {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    tracking = false;
+    document.getElementById('live-dot').classList.add('off');
+    document.getElementById('status-badge').textContent = 'หยุด';
+    document.getElementById('status-badge').style.background = '#f0f0f0';
+    document.getElementById('status-badge').style.color = '#888';
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = '📍 เริ่มติดตาม GPS อีกครั้ง';
+    showToast('หยุดติดตาม GPS แล้วครับ');
+  }
+
+  // ─── Toast ───────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ─── Keep screen on (ป้องกันหน้าจอดับ) ─────────────────────
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch (e) {}
+  }
+  requestWakeLock();
+
+  init();
+</script>
+</body>
+</html>
