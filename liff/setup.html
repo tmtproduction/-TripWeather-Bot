@@ -99,6 +99,15 @@
   .success-box{background:#E1F5EE;border-radius:12px;padding:14px;text-align:center}
   .success-code{font-size:28px;font-weight:800;color:#0F6E56;letter-spacing:0.15em;margin:6px 0}
   .copy-btn{background:#0F6E56;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-top:8px}
+  .trip-list-item{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;padding:12px 14px;cursor:pointer;transition:background .12s}
+  .trip-list-item:active{background:#f5f5f5}
+  .trip-list-item.selected{border:2px solid #06C755;background:#f0fff6}
+  .trip-list-code{font-size:12px;font-weight:700;color:#888;letter-spacing:.08em;font-family:monospace}
+  .trip-list-route{font-size:14px;font-weight:600;color:#1a1a1a;margin-top:2px}
+  .trip-list-meta{font-size:11px;color:#aaa;margin-top:4px;display:flex;align-items:center;gap:8px}
+  .trip-list-car{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:500}
+  .tab-active{background:#1a1a1a!important;color:#fff!important;border-color:#1a1a1a!important}
+  .tab-inactive{background:#fff!important;color:#888!important;border-color:#e8e8e8!important}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:300;white-space:nowrap;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
 </style>
@@ -222,7 +231,20 @@
     <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
     <span style="font-size:16px;font-weight:600">Join Trip</span>
   </div>
-  <div class="card" style="padding:16px">
+  <!-- Tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:4px">
+    <button id="tab-code" onclick="switchJoinTab('code')"
+      style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+      🔑 กรอก Code
+    </button>
+    <button id="tab-list" onclick="switchJoinTab('list')"
+      style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e8e8e8;background:#fff;color:#888;font-size:13px;font-weight:500;cursor:pointer">
+      📋 เลือกจากรายการ
+    </button>
+  </div>
+
+  <!-- Tab: กรอก Code -->
+  <div id="tab-code-panel" class="card" style="padding:16px">
     <div style="text-align:center;margin-bottom:14px">
       <div style="font-size:40px;margin-bottom:6px">🔗</div>
       <div style="font-size:14px;font-weight:500">กรอก Trip Code</div>
@@ -231,6 +253,17 @@
     <input class="code-input" id="join-code-input" placeholder="TRP-XXXX" maxlength="8"
       oninput="this.value=this.value.toUpperCase()" />
     <button class="btn-main" onclick="searchTrip()" style="border-radius:10px;padding:12px;margin-top:10px">🔍 ค้นหา Trip</button>
+  </div>
+
+  <!-- Tab: รายการ Trip -->
+  <div id="tab-list-panel" class="hidden">
+    <div class="card" style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:#888">Trip ที่เปิดอยู่ในกลุ่มนี้</div>
+      <button onclick="loadTripList()" style="background:none;border:none;color:#185FA5;font-size:12px;cursor:pointer">🔄 รีเฟรช</button>
+    </div>
+    <div id="trip-list-items" style="display:flex;flex-direction:column;gap:8px;margin-top:0">
+      <div style="text-align:center;color:#aaa;font-size:13px;padding:20px">กำลังโหลด...</div>
+    </div>
   </div>
   <div id="join-result" class="hidden">
     <div class="result-card">
@@ -333,7 +366,15 @@ async function initLiff() {
   }
 }
 
-Promise.all([initLiff(), loadGoogleMaps()]);
+Promise.all([initLiff(), loadGoogleMaps()]).then(() => {
+  // ถ้ามี joinCode ใน URL → auto-open join screen
+  const joinCode = urlParams.get('joinCode');
+  if (joinCode) {
+    showScreen('screen-join');
+    document.getElementById('join-code-input').value = joinCode.toUpperCase();
+    setTimeout(() => searchTrip(), 600);
+  }
+});
 
 // ─── Screen Nav ───────────────────────────────────────────────
 function showScreen(id) {
