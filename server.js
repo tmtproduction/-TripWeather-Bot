@@ -57,6 +57,11 @@ async function handleEvent(event) {
   }
 }
 
+// ─── Config API (ส่ง public keys ให้ frontend) ────────────────
+app.get("/api/config", (req, res) => {
+  res.json({ mapsKey: process.env.GOOGLE_MAPS_KEY || "" });
+});
+
 // ─── GPS Webhook จาก LIFF ─────────────────────────────────────
 app.use(express.json());
 
