@@ -352,6 +352,53 @@ function buildPillMessage(carName, district, minutesDiff) {
   };
 }
 
+
+// ─── Admin API ─────────────────────────────────────────────────
+
+function adminAuth(req, res, next) {
+  const key = req.query.key || req.headers['x-admin-key'];
+  if (!process.env.ADMIN_SECRET || key !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// GET /api/admin/trips — ดูทุก trip ที่ active ใน Redis
+app.get('/api/admin/trips', adminAuth, async (req, res) => {
+  try {
+    let allKeys = [];
+    let cursor  = 0;
+    // SCAN ทีละรอบ จนครบ
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, { match: 'trip:*', count: 100 });
+      cursor  = Number(nextCursor);
+      allKeys = allKeys.concat(keys);
+    } while (cursor !== 0);
+
+    if (!allKeys.length) return res.json([]);
+
+    const results = await Promise.all(allKeys.map(k => redis.get(k)));
+    const trips   = results
+      .filter(Boolean)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    res.json(trips);
+  } catch (e) {
+    console.error('Admin trips error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/admin/trip/:code — ลบ trip
+app.delete('/api/admin/trip/:code', adminAuth, async (req, res) => {
+  try {
+    await redis.del(`trip:${req.params.code}`);
+    res.json({ status: 'deleted', tripCode: req.params.code });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Start ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`TripWeather Bot running on port ${PORT}`));
