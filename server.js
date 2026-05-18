@@ -52,14 +52,16 @@ const setGroupTrip = (gid, code)     => redis.set(`group:${gid}`, code, { ex: TT
 
 // ─── Static files ──────────────────────────────────────────────
 app.use("/liff", express.static(path.join(__dirname, "liff")));
-app.get("/debug-env", (req, res) => {
-  res.json({
-    secret_length: (process.env.LINE_CHANNEL_SECRET || "").length,
-    secret_preview: (process.env.LINE_CHANNEL_SECRET || "").substring(0, 6) + "...",
-    token_length: (process.env.LINE_CHANNEL_ACCESS_TOKEN || "").length,
-  });
+app.use((req, res, next) => {
+  if (req.path === "/webhook") {
+    let data = "";
+    req.setEncoding("utf8");
+    req.on("data", chunk => { data += chunk; });
+    req.on("end", () => { req.rawBody = data; next(); });
+  } else {
+    express.json()(req, res, next);
+  }
 });
-app.use(express.json());
 
 // ─── LINE Webhook ──────────────────────────────────────────────
 app.post("/webhook", middleware(lineConfig), async (req, res) => {
