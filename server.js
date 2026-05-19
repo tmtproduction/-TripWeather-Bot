@@ -103,21 +103,39 @@ async function handleEvent(event) {
 }
 
 // ─── Status Command ────────────────────────────────────────────
+async function findTripByGroupId(groupId) {
+  // 1. ลอง key ตรงก่อน (เร็ว)
+  const tripCode = await getGroupTrip(groupId);
+  if (tripCode) {
+    const trip = await getTrip(tripCode);
+    if (trip) return trip;
+  }
+
+  // 2. Fallback: SCAN ทุก trip หาที่ตรง groupId
+  let allKeys = [], cursor = 0;
+  do {
+    const [nc, keys] = await redis.scan(cursor, { match: "trip:*", count: 100 });
+    cursor = Number(nc); allKeys = allKeys.concat(keys);
+  } while (cursor !== 0);
+
+  const results = await Promise.all(allKeys.map(k => redis.get(k)));
+  const trips   = results.filter(Boolean).sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
+  const found   = trips.find(t => t.groupId === groupId);
+
+  // บันทึก key ไว้เพื่อครั้งหน้าจะได้ไม่ต้อง scan ใหม่
+  if (found) await setGroupTrip(groupId, found.tripCode);
+
+  return found || null;
+}
+
 async function handleStatusCommand(groupId, replyToken) {
   if (!groupId) return;
 
-  const tripCode = await getGroupTrip(groupId);
-  if (!tripCode) {
+  const trip = await findTripByGroupId(groupId);
+  if (!trip) {
     return client.replyMessage(replyToken, {
       type: "text", text: "ยังไม่มี Trip ที่กำลังดำเนินการในกลุ่มนี้ครับ\n\nสร้าง trip ได้ที่:\n" +
         `${process.env.BASE_URL}/liff/setup.html?liffId=${process.env.LIFF_ID}&groupId=${groupId}`,
-    });
-  }
-
-  const trip = await getTrip(tripCode);
-  if (!trip) {
-    return client.replyMessage(replyToken, {
-      type: "text", text: "ไม่พบข้อมูล Trip ครับ (อาจหมดอายุแล้ว)",
     });
   }
 
@@ -163,8 +181,12 @@ app.post("/api/location", async (req, res) => {
 
     const now = Date.now();
 
-    // บันทึก GPS ล่าสุด
-    await setGps(userId, { lat, lon, district, updatedAt: now });
+    // บันทึก GPS ล่าสุด + ผูก groupId → tripCode ถ้ายังไม่มี
+    const existingGroup = groupId ? await getGroupTrip(groupId) : null;
+    await Promise.all([
+      setGps(userId, { lat, lon, updatedAt: now }),
+      groupId && tripCode && !existingGroup ? setGroupTrip(groupId, tripCode) : Promise.resolve(),
+    ]);
 
     // Dedup: ยังอยู่อำเภอเดิม
     const prevDist = await getDist(userId);
