@@ -52,16 +52,7 @@ const setGroupTrip = (gid, code)     => redis.set(`group:${gid}`, code, { ex: TT
 
 // ─── Static files ──────────────────────────────────────────────
 app.use("/liff", express.static(path.join(__dirname, "liff")));
-app.use((req, res, next) => {
-  if (req.path === "/webhook") {
-    let data = "";
-    req.setEncoding("utf8");
-    req.on("data", chunk => { data += chunk; });
-    req.on("end", () => { req.rawBody = data; next(); });
-  } else {
-    express.json()(req, res, next);
-  }
-});
+app.use(express.json());
 
 // ─── LINE Webhook ──────────────────────────────────────────────
 app.post("/webhook", middleware(lineConfig), async (req, res) => {
@@ -73,6 +64,14 @@ app.post("/webhook", middleware(lineConfig), async (req, res) => {
 });
 
 async function handleEvent(event) {
+  // DEBUG LOG — ลบออกหลังได้ groupId แล้ว
+  console.log("[EVENT]", JSON.stringify({
+    type:    event.type,
+    groupId: event.source?.groupId,
+    userId:  event.source?.userId,
+    text:    event.message?.text,
+  }));
+
   if (event.type === "join") {
     const groupId = event.source.groupId;
     await client.pushMessage(groupId, {
