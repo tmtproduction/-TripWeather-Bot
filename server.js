@@ -65,7 +65,15 @@ app.post("/webhook", middleware(lineConfig), async (req, res) => {
 });
 
 async function handleEvent(event) {
-   if (event.type === "join") {
+  // DEBUG LOG — ลบออกหลังได้ groupId แล้ว
+  console.log("[EVENT]", JSON.stringify({
+    type:    event.type,
+    groupId: event.source?.groupId,
+    userId:  event.source?.userId,
+    text:    event.message?.text,
+  }));
+
+  if (event.type === "join") {
     const groupId = event.source.groupId;
     await client.pushMessage(groupId, {
       type: "text",
@@ -373,13 +381,41 @@ async function calcRouteDistance(trip) {
   } catch { return null; }
 }
 
+// Cache reverse geocode ไม่ให้ยิงซ้ำพิกัดใกล้กัน
+const geocodeCache = new Map();
+
 async function getDistrict(lat, lon) {
-  const resp = await axios.get(
-    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=th`,
-    { headers: { "User-Agent": "TripWeatherBot/1.0" } }
-  );
-  const addr = resp.data.address || {};
-  return addr.county || addr.city_district || addr.suburb || addr.city || null;
+  // round ทศนิยม 2 ตำแหน่ง (~1.1km) เพื่อ cache พิกัดใกล้เคียง
+  const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+  if (geocodeCache.has(key)) return geocodeCache.get(key);
+
+  // throttle: รอ 1.1 วินาทีก่อนยิง Nominatim
+  await new Promise(r => setTimeout(r, 1100));
+
+  try {
+    const resp = await axios.get(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=th`,
+      {
+        headers: {
+          "User-Agent": "TripWeatherBot/1.0 (tripweather-bot.onrender.com)",
+          "Accept-Language": "th",
+        },
+        timeout: 8000,
+      }
+    );
+    const addr   = resp.data.address || {};
+    const result = addr.county || addr.city_district || addr.suburb || addr.city || null;
+
+    // cache 30 นาที
+    if (result) {
+      geocodeCache.set(key, result);
+      setTimeout(() => geocodeCache.delete(key), 30 * 60 * 1000);
+    }
+    return result;
+  } catch (e) {
+    console.error("Geocode error:", e.message);
+    return null;
+  }
 }
 
 async function getWeather(lat, lon) {
