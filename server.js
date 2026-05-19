@@ -381,41 +381,61 @@ async function calcRouteDistance(trip) {
   } catch { return null; }
 }
 
-// Cache reverse geocode ไม่ให้ยิงซ้ำพิกัดใกล้กัน
+// Cache reverse geocode (~1.1km grid, 30 นาที)
 const geocodeCache = new Map();
 
 async function getDistrict(lat, lon) {
-  // round ทศนิยม 2 ตำแหน่ง (~1.1km) เพื่อ cache พิกัดใกล้เคียง
   const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
   if (geocodeCache.has(key)) return geocodeCache.get(key);
 
-  // throttle: รอ 1.1 วินาทีก่อนยิง Nominatim
-  await new Promise(r => setTimeout(r, 1100));
+  let result = null;
 
-  try {
-    const resp = await axios.get(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=th`,
-      {
-        headers: {
-          "User-Agent": "TripWeatherBot/1.0 (tripweather-bot.onrender.com)",
-          "Accept-Language": "th",
-        },
-        timeout: 8000,
+  // ── 1. ลอง Google Maps Geocoding API ก่อน (ถ้ามี key) ─────────
+  if (process.env.GOOGLE_MAPS_KEY) {
+    try {
+      const resp = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=th&result_type=administrative_area_level_2|locality&key=${process.env.GOOGLE_MAPS_KEY}`,
+        { timeout: 6000 }
+      );
+      const results = resp.data.results || [];
+      for (const r of results) {
+        for (const comp of (r.address_components || [])) {
+          if (comp.types.includes("administrative_area_level_2") ||
+              comp.types.includes("locality")) {
+            result = comp.long_name;
+            break;
+          }
+        }
+        if (result) break;
       }
-    );
-    const addr   = resp.data.address || {};
-    const result = addr.county || addr.city_district || addr.suburb || addr.city || null;
-
-    // cache 30 นาที
-    if (result) {
-      geocodeCache.set(key, result);
-      setTimeout(() => geocodeCache.delete(key), 30 * 60 * 1000);
+    } catch (e) {
+      console.warn("Google Geocode error:", e.message);
     }
-    return result;
-  } catch (e) {
-    console.error("Geocode error:", e.message);
-    return null;
   }
+
+  // ── 2. Fallback: Nominatim (ถ้า Google ไม่มี / ล้มเหลว) ───────
+  if (!result) {
+    try {
+      await new Promise(r => setTimeout(r, 1100));
+      const resp = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=th`,
+        {
+          headers: { "User-Agent": "TripWeatherBot/1.0 (tripweather-bot.onrender.com)" },
+          timeout: 8000,
+        }
+      );
+      const addr = resp.data.address || {};
+      result = addr.county || addr.city_district || addr.suburb || addr.city || null;
+    } catch (e) {
+      console.error("Nominatim error:", e.message);
+    }
+  }
+
+  if (result) {
+    geocodeCache.set(key, result);
+    setTimeout(() => geocodeCache.delete(key), 30 * 60 * 1000);
+  }
+  return result;
 }
 
 async function getWeather(lat, lon) {
