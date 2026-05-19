@@ -52,9 +52,10 @@ const setGroupTrip = (gid, code)     => redis.set(`group:${gid}`, code, { ex: TT
 
 // ─── Static files ──────────────────────────────────────────────
 app.use("/liff", express.static(path.join(__dirname, "liff")));
-app.use(express.json());
 
-// ─── LINE Webhook ──────────────────────────────────────────────
+// ─── LINE Webhook (ต้องอยู่ก่อน express.json() เสมอ) ──────────
+// express.json() จะทำให้ LINE middleware อ่าน raw body ไม่ได้
+// ส่งผล SignatureValidationFailed
 app.post("/webhook", middleware(lineConfig), async (req, res) => {
   res.sendStatus(200);
   for (const event of req.body.events || []) {
@@ -142,6 +143,9 @@ async function handleStatusCommand(groupId, replyToken) {
 }
 
 // ─── Config API ────────────────────────────────────────────────
+// express.json() ต้องอยู่หลัง webhook route เท่านั้น
+app.use(express.json());
+
 app.get("/api/config", (req, res) => {
   res.json({ mapsKey: process.env.GOOGLE_MAPS_KEY || "" });
 });
