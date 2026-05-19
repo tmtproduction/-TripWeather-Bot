@@ -65,15 +65,7 @@ app.post("/webhook", middleware(lineConfig), async (req, res) => {
 });
 
 async function handleEvent(event) {
-  // DEBUG LOG — ลบออกหลังได้ groupId แล้ว
-  console.log("[EVENT]", JSON.stringify({
-    type:    event.type,
-    groupId: event.source?.groupId,
-    userId:  event.source?.userId,
-    text:    event.message?.text,
-  }));
-
-  if (event.type === "join") {
+   if (event.type === "join") {
     const groupId = event.source.groupId;
     await client.pushMessage(groupId, {
       type: "text",
