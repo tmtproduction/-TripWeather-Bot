@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripWeather — Test GPS</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+  .header{background:#1a1a1a;padding:14px 16px;display:flex;align-items:center;gap:10px}
+  .header-title{color:#fff;font-size:15px;font-weight:600}
+  .header-sub{color:#888;font-size:11px;margin-top:1px}
+  .body{padding:16px;display:flex;flex-direction:column;gap:12px;max-width:480px;margin:0 auto}
+  .card{background:#fff;border-radius:14px;padding:14px;border:0.5px solid #e8e8e8}
+  .card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .field{margin-bottom:10px}
+  .field label{font-size:12px;font-weight:500;color:#555;display:block;margin-bottom:5px}
+  .field input,.field select{width:100%;border:1.5px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;background:#f8f8f8;transition:border-color .2s}
+  .field input:focus,.field select:focus{border-color:#1a1a1a;background:#fff}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{width:100%;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary{background:#1a1a1a;color:#fff}
+  .btn-primary:active{opacity:.85}
+  .btn-primary:disabled{background:#aaa;cursor:default}
+  .btn-green{background:#06C755;color:#fff}
+  .btn-green:active{opacity:.85}
+  .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .preset-btn{background:#f5f5f5;border:0.5px solid #e8e8e8;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:background .12s}
+  .preset-btn:active{background:#e8e8e8}
+  .preset-name{font-size:12px;font-weight:600;color:#1a1a1a}
+  .preset-coord{font-size:10px;color:#888;margin-top:2px;font-family:monospace}
+  .log-box{background:#1a1a1a;border-radius:12px;padding:12px;min-height:120px;max-height:260px;overflow-y:auto;font-family:monospace;font-size:12px;color:#e0e0e0;display:flex;flex-direction:column;gap:4px}
+  .log-item{padding:4px 0;border-bottom:0.5px solid #2a2a2a;line-height:1.5}
+  .log-item:last-child{border-bottom:none}
+  .log-ok{color:#3ef584}
+  .log-err{color:#f87171}
+  .log-info{color:#93c5fd}
+  .log-time{color:#666;margin-right:6px}
+  .status-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle}
+  .chip-sent{background:#E1F5EE;color:#085041}
+  .chip-same{background:#f0f0f0;color:#888}
+  .chip-pill{background:#E6F1FB;color:#0C447C}
+  .chip-err{background:#FCEBEB;color:#A32D2D}
+  .divider{height:.5px;background:#eee;margin:4px 0}
+  .info-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px}
+  .info-val{font-weight:600;color:#1a1a1a;font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🧪 TripWeather — Test GPS</div>
+    <div class="header-sub">ส่งพิกัดทดสอบเข้าระบบโดยไม่ต้องขับรถจริง</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- Config -->
+  <div class="card">
+    <div class="card-title">ตั้งค่าการทดสอบ</div>
+    <div class="field">
+      <label>Base URL (server)</label>
+      <input id="base-url" value="" placeholder="https://tripweather-bot.onrender.com" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Trip Code</label>
+        <input id="trip-code" placeholder="TRP-XXXX" oninput="this.value=this.value.toUpperCase()" />
+      </div>
+      <div class="field">
+        <label>Car ID</label>
+        <select id="car-id">
+          <option value="A">คัน A 🚗</option>
+          <option value="B">คัน B 🚙</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Group ID (LINE)</label>
+      <input id="group-id" placeholder="C1234... (จาก LINE group)" />
+    </div>
+    <div class="field">
+      <label>User ID (จำลอง)</label>
+      <input id="user-id" value="" placeholder="test-user-A" />
+    </div>
+  </div>
+
+  <!-- Presets -->
+  <div class="card">
+    <div class="card-title">พิกัดตัวอย่าง — กดเพื่อเลือก</div>
+    <div class="preset-grid" id="preset-grid"></div>
+  </div>
+
+  <!-- Manual Input -->
+  <div class="card">
+    <div class="card-title">พิกัดที่จะส่ง</div>
+    <div class="info-row">
+      <span>อำเภอที่คาดว่าจะได้</span>
+      <span class="info-val" id="preview-district">—</span>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Latitude</label>
+        <input id="lat" type="number" step="0.0001" placeholder="13.7563" oninput="updatePreview()" />
+      </div>
+      <div class="field">
+        <label>Longitude</label>
+        <input id="lon" type="number" step="0.0001" placeholder="100.5018" oninput="updatePreview()" />
+      </div>
+    </div>
+    <button class="btn btn-primary" id="send-btn" onclick="sendLocation()">
+      📡 ส่งพิกัดนี้เข้าระบบ
+    </button>
+  </div>
+
+  <!-- Auto Sequence -->
+  <div class="card">
+    <div class="card-title">ส่งพิกัดต่อเนื่อง (จำลองขับรถ)</div>
+    <div class="field">
+      <label>เส้นทาง</label>
+      <select id="route-select">
+        <option value="bkk-pattaya">กรุงเทพฯ → ชลบุรี → พัทยา</option>
+        <option value="bkk-chiangmai">กรุงเทพฯ → นครสวรรค์ → เชียงใหม่</option>
+        <option value="bkk-korat">กรุงเทพฯ → สระบุรี → นครราชสีมา</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>ส่งทุก <span id="interval-val">30</span> วินาที</label>
+      <input type="range" id="interval" min="5" max="120" value="30" step="5"
+        oninput="document.getElementById('interval-val').textContent=this.value" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+      <button class="btn btn-green" id="seq-start-btn" onclick="startSequence()">▶ เริ่ม Sequence</button>
+      <button class="btn" style="background:#FCEBEB;color:#A32D2D" onclick="stopSequence()">⏹ หยุด</button>
+    </div>
+    <div id="seq-status" style="font-size:12px;color:#888;margin-top:8px;text-align:center"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Log</span>
+      <button onclick="document.getElementById('log-box').innerHTML=''" style="background:none;border:none;color:#888;font-size:11px;cursor:pointer">ล้าง</button>
+    </div>
+    <div class="log-box" id="log-box">
+      <div class="log-item log-info">⏳ พร้อมรับการทดสอบ กรอกข้อมูลด้านบนแล้วกดส่ง</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PRESETS = [
+  { name:'สยาม กรุงเทพฯ',      lat:13.7455, lon:100.5331 },
+  { name:'รังสิต ปทุมธานี',     lat:14.0278, lon:100.7439 },
+  { name:'สระบุรี',             lat:14.5289, lon:100.9104 },
+  { name:'มวกเหล็ก สระบุรี',   lat:14.7132, lon:101.0321 },
+  { name:'ปากช่อง นครราชสีมา', lat:14.7200, lon:101.4112 },
+  { name:'โคราช เมือง',        lat:14.9799, lon:102.0977 },
+  { name:'ชลบุรี เมือง',       lat:13.3611, lon:100.9847 },
+  { name:'ศรีราชา ชลบุรี',     lat:13.1716, lon:100.9294 },
+  { name:'พัทยา',              lat:12.9236, lon:100.8825 },
+  { name:'อยุธยา',             lat:14.3532, lon:100.5678 },
+  { name:'นครสวรรค์',          lat:15.7030, lon:100.1367 },
+  { name:'เชียงใหม่ เมือง',    lat:18.7883, lon:98.9853  },
+];
+
+const ROUTES = {
+  'bkk-pattaya': [
+    { name:'สยาม', lat:13.7455, lon:100.5331 },
+    { name:'บางนา', lat:13.6605, lon:100.6054 },
+    { name:'ชลบุรี เมือง', lat:13.3611, lon:100.9847 },
+    { name:'ศรีราชา', lat:13.1716, lon:100.9294 },
+    { name:'พัทยา', lat:12.9236, lon:100.8825 },
+  ],
+  'bkk-chiangmai': [
+    { name:'สยาม', lat:13.7455, lon:100.5331 },
+    { name:'อยุธยา', lat:14.3532, lon:100.5678 },
+    { name:'นครสวรรค์', lat:15.7030, lon:100.1367 },
+    { name:'ลำปาง', lat:18.2888, lon:99.4878 },
+    { name:'เชียงใหม่', lat:18.7883, lon:98.9853 },
+  ],
+  'bkk-korat': [
+    { name:'สยาม', lat:13.7455, lon:100.5331 },
+    { name:'รังสิต', lat:14.0278, lon:100.7439 },
+    { name:'สระบุรี', lat:14.5289, lon:100.9104 },
+    { name:'มวกเหล็ก', lat:14.7132, lon:101.0321 },
+    { name:'โคราช', lat:14.9799, lon:102.0977 },
+  ],
+};
+
+// ─── Init ────────────────────────────────────────────────────
+const BASE = window.location.origin;
+document.getElementById('base-url').value = BASE;
+document.getElementById('user-id').value  = 'test-user-' + Math.random().toString(36).substring(2,6);
+
+// Presets
+document.getElementById('preset-grid').innerHTML = PRESETS.map((p, i) => `
+  <button class="preset-btn" onclick="selectPreset(${i})">
+    <div class="preset-name">${p.name}</div>
+    <div class="preset-coord">${p.lat}, ${p.lon}</div>
+  </button>`).join('');
+
+function selectPreset(i) {
+  document.getElementById('lat').value = PRESETS[i].lat;
+  document.getElementById('lon').value = PRESETS[i].lon;
+  document.getElementById('preview-district').textContent = PRESETS[i].name;
+}
+
+function updatePreview() {
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  if (!lat || !lon) { document.getElementById('preview-district').textContent = '—'; return; }
+  const found = PRESETS.find(p => Math.abs(p.lat - lat) < 0.1 && Math.abs(p.lon - lon) < 0.1);
+  document.getElementById('preview-district').textContent = found ? found.name : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+
+// ─── Send Location ────────────────────────────────────────────
+async function sendLocation(lat, lon, label) {
+  const baseUrl  = document.getElementById('base-url').value.trim() || BASE;
+  const tripCode = document.getElementById('trip-code').value.trim();
+  const carId    = document.getElementById('car-id').value;
+  const groupId  = document.getElementById('group-id').value.trim();
+  const userId   = document.getElementById('user-id').value.trim();
+  const useLat   = lat ?? parseFloat(document.getElementById('lat').value);
+  const useLon   = lon ?? parseFloat(document.getElementById('lon').value);
+
+  if (!useLat || !useLon) return addLog('❌ กรุณากรอก Lat/Lon ก่อน', 'err');
+  if (!groupId)           return addLog('❌ กรุณากรอก Group ID', 'err');
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.textContent = '⏳ กำลังส่ง...';
+
+  const payload = { userId, groupId, tripCode: tripCode || undefined, carId, lat: useLat, lon: useLon };
+  addLog(`📡 ส่ง ${label || useLat.toFixed(4)+','+useLon.toFixed(4)} [${carId}]`, 'info');
+
+  try {
+    const resp = await fetch(`${baseUrl}/api/location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+
+    let chipClass = 'chip-same', chipText = 'อำเภอเดิม';
+    if (data.status === 'full_sent') { chipClass = 'chip-sent'; chipText = '✅ ส่ง LINE แล้ว'; }
+    if (data.status === 'pill_sent') { chipClass = 'chip-pill'; chipText = '💬 ส่ง pill'; }
+    if (data.status === 'no_district') { chipClass = 'chip-err'; chipText = 'หาอำเภอไม่ได้'; }
+
+    addLog(
+      `↩ ${data.district || '—'} <span class="status-chip ${chipClass}">${chipText}</span>`,
+      data.status === 'full_sent' ? 'ok' : data.status === 'pill_sent' ? 'ok' : 'info'
+    );
+  } catch (e) {
+    addLog(`❌ Error: ${e.message}`, 'err');
+  }
+
+  btn.disabled = false; btn.textContent = '📡 ส่งพิกัดนี้เข้าระบบ';
+}
+
+// ─── Sequence ─────────────────────────────────────────────────
+let seqTimer = null, seqIndex = 0, seqPoints = [];
+
+function startSequence() {
+  stopSequence();
+  const routeKey = document.getElementById('route-select').value;
+  seqPoints = ROUTES[routeKey] || [];
+  seqIndex  = 0;
+  const sec = parseInt(document.getElementById('interval').value);
+  addLog(`▶ เริ่ม sequence "${routeKey}" (${seqPoints.length} จุด ทุก ${sec}s)`, 'info');
+  runSeqStep();
+  seqTimer = setInterval(runSeqStep, sec * 1000);
+  document.getElementById('seq-status').textContent = `กำลังส่ง... จุดที่ 1/${seqPoints.length}`;
+}
+
+function runSeqStep() {
+  if (seqIndex >= seqPoints.length) { stopSequence(); return; }
+  const pt = seqPoints[seqIndex];
+  document.getElementById('lat').value = pt.lat;
+  document.getElementById('lon').value = pt.lon;
+  document.getElementById('preview-district').textContent = pt.name;
+  document.getElementById('seq-status').textContent = `จุดที่ ${seqIndex+1}/${seqPoints.length}: ${pt.name}`;
+  sendLocation(pt.lat, pt.lon, pt.name);
+  seqIndex++;
+}
+
+function stopSequence() {
+  if (seqTimer) { clearInterval(seqTimer); seqTimer = null; }
+  document.getElementById('seq-status').textContent = seqTimer ? '' : 'หยุดแล้ว';
+  addLog('⏹ หยุด sequence', 'info');
+}
+
+// ─── Log ──────────────────────────────────────────────────────
+function addLog(msg, type = 'info') {
+  const box  = document.getElementById('log-box');
+  const time = new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const el   = document.createElement('div');
+  el.className = `log-item log-${type}`;
+  el.innerHTML = `<span class="log-time">${time}</span>${msg}`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+  if (box.children.length > 80) box.removeChild(box.firstChild);
+}
+</script>
+</body>
+</html>
