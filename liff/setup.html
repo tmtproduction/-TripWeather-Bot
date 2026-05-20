@@ -1,971 +1,740 @@
-require("dotenv").config();
-const express = require("express");
-const { Client, middleware } = require("@line/bot-sdk");
-const axios = require("axios");
-const { Redis } = require("@upstash/redis");
-const path = require("path");
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripWeather — Setup</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+  .header{background:#06C755;padding:16px;display:flex;align-items:center;gap:10px}
+  .header-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .header h1{color:#fff;font-size:16px;font-weight:600}
+  .header p{color:rgba(255,255,255,0.8);font-size:12px;margin-top:1px}
+  .body{padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border-radius:14px;overflow:hidden;border:0.5px solid #e8e8e8}
+  .card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;padding:12px 14px 4px}
+  .field-row{display:flex;align-items:center;padding:10px 14px;gap:10px;border-bottom:0.5px solid #f0f0f0;cursor:pointer}
+  .field-row:last-child{border-bottom:none}
+  .field-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .field-text{flex:1;min-width:0}
+  .field-name{font-size:14px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .field-name.placeholder{color:#aaa;font-weight:400}
+  .field-sub{font-size:12px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .field-chevron{color:#ccc;font-size:16px}
+  .waypoint-list{padding:0}
+  .wp-item{display:flex;align-items:center;padding:10px 14px;gap:10px;border-bottom:0.5px solid #f0f0f0}
+  .wp-dot{width:10px;height:10px;border-radius:50%;background:#EF9F27;flex-shrink:0;margin-left:11px}
+  .wp-name{flex:1;font-size:14px;font-weight:500;color:#1a1a1a;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wp-del{color:#ccc;font-size:18px;padding:4px;cursor:pointer;flex-shrink:0}
+  .add-wp{display:flex;align-items:center;gap:8px;padding:11px 14px;color:#185FA5;font-size:13px;font-weight:500;cursor:pointer;background:#f8fbff;border:1.5px dashed #b5d4f4;border-radius:12px}
+  .car-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .car-btn{border:1.5px solid #e8e8e8;border-radius:12px;padding:10px;cursor:pointer;text-align:center;background:#fff;transition:all 0.15s}
+  .car-btn.sel-a{border-color:#378ADD;background:#E6F1FB}
+  .car-btn.sel-b{border-color:#1D9E75;background:#E1F5EE}
+  .car-btn-icon{font-size:20px;margin-bottom:4px}
+  .car-btn-name{font-size:12px;font-weight:600;color:#1a1a1a}
+  .car-btn-sub{font-size:11px;color:#888;margin-top:1px}
+  .btn-main{background:#06C755;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-main:active{opacity:0.85}
+  .btn-main:disabled{background:#aaa;cursor:default}
+  .btn-secondary{background:#fff;color:#1a1a1a;border:1px solid #e8e8e8;border-radius:14px;padding:13px;font-size:15px;font-weight:500;width:100%;cursor:pointer;text-align:center}
+  .btn-estimate{background:#fff;color:#185FA5;border:1.5px solid #185FA5;border-radius:14px;padding:13px;font-size:15px;font-weight:600;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-estimate:active{opacity:0.8}
+  .btn-estimate.loading{color:#aaa;border-color:#ddd;cursor:default;pointer-events:none}
+  .divider{display:flex;align-items:center;gap:10px;color:#aaa;font-size:12px}
+  .divider::before,.divider::after{content:'';flex:1;height:0.5px;background:#e8e8e8}
+  .code-input{background:#f5f5f5;border:1.5px solid #e8e8e8;border-radius:12px;padding:14px;font-size:22px;font-weight:700;width:100%;text-align:center;letter-spacing:0.15em;color:#1a1a1a;outline:none}
+  .code-input:focus{border-color:#06C755}
+  .result-card{background:#fff;border-radius:14px;border:1.5px solid #06C755;padding:14px}
+  .result-title{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:8px}
+  .result-route{font-size:14px;font-weight:500;color:#1a1a1a}
+  .result-sub{font-size:12px;color:#666;margin-top:3px}
+  /* Estimate Card */
+  .estimate-card{background:#fff;border-radius:14px;border:0.5px solid #e8e8e8;overflow:hidden;display:none}
+  .estimate-card.show{display:block}
+  .estimate-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .estimate-cell{border-radius:10px;padding:10px;text-align:center}
+  .estimate-num{font-size:26px;font-weight:800;line-height:1}
+  .estimate-unit{font-size:11px;margin-top:3px}
+  .estimate-legs{border-top:0.5px solid #f0f0f0}
+  .estimate-leg{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid #f5f5f5;font-size:12px;color:#555}
+  .estimate-leg:last-child{border-bottom:none}
+  .estimate-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .estimate-leg-name{flex:1}
+  .estimate-leg-info{color:#888;white-space:nowrap}
+  /* Search Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;z-index:100;opacity:0;transition:opacity 0.25s;pointer-events:none}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1)}
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .modal-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:10px auto 0}
+  .modal-header{padding:12px 16px 10px;border-bottom:0.5px solid #f0f0f0}
+  .modal-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .modal-title{font-size:15px;font-weight:600;color:#1a1a1a}
+  .modal-close{background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;padding:0 2px}
+  .search-wrap{position:relative;display:flex;align-items:center}
+  .search-icon{position:absolute;left:12px;color:#aaa;font-size:16px;pointer-events:none}
+  .modal-search{width:100%;border:1.5px solid #e8e8e8;border-radius:12px;padding:11px 36px 11px 38px;font-size:15px;outline:none;background:#f8f8f8;transition:border-color 0.2s}
+  .modal-search:focus{border-color:#06C755;background:#fff}
+  .search-spinner{position:absolute;right:12px;width:16px;height:16px;border:2px solid #e0e0e0;border-top-color:#06C755;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+  .search-spinner.show{display:block}
+  .clear-btn{position:absolute;right:12px;background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;display:none;padding:0;line-height:1}
+  .clear-btn.show{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .modal-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .search-hint{text-align:center;padding:32px 16px;color:#aaa;font-size:13px;line-height:1.8}
+  .search-hint-icon{font-size:32px;margin-bottom:8px}
+  .result-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid #f5f5f5;cursor:pointer}
+  .result-item:active{background:#f8f8f8}
+  .result-pin{width:34px;height:34px;border-radius:10px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .result-info{flex:1;min-width:0}
+  .result-name{font-size:14px;font-weight:500;color:#1a1a1a}
+  .result-addr{font-size:12px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result-chevron{color:#ddd;font-size:14px;flex-shrink:0}
+  .no-results{text-align:center;padding:32px 16px;color:#aaa;font-size:13px;line-height:1.6}
+  .google-attr{padding:6px 16px 10px;text-align:right;font-size:10px;color:#bbb}
+  .hidden{display:none!important}
+  .success-box{background:#E1F5EE;border-radius:12px;padding:14px;text-align:center}
+  .success-code{font-size:28px;font-weight:800;color:#0F6E56;letter-spacing:0.15em;margin:6px 0}
+  .copy-btn{background:#0F6E56;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-top:8px}
+  .trip-list-item{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;padding:12px 14px;cursor:pointer;transition:background .12s}
+  .trip-list-item:active{background:#f5f5f5}
+  .trip-list-item.selected{border:2px solid #06C755;background:#f0fff6}
+  .trip-list-code{font-size:12px;font-weight:700;color:#888;letter-spacing:.08em;font-family:monospace}
+  .trip-list-route{font-size:14px;font-weight:600;color:#1a1a1a;margin-top:2px}
+  .trip-list-meta{font-size:11px;color:#aaa;margin-top:4px;display:flex;align-items:center;gap:8px}
+  .trip-list-car{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:500}
+  .tab-active{background:#1a1a1a!important;color:#fff!important;border-color:#1a1a1a!important}
+  .tab-inactive{background:#fff!important;color:#888!important;border-color:#e8e8e8!important}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:300;white-space:nowrap;max-width:90vw;text-align:center}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
 
-const app = express();
+<div class="header">
+  <div class="header-icon">🌤</div>
+  <div><h1>TripWeather</h1><p>แจ้งอากาศ + จราจร เมื่อข้ามอำเภอ</p></div>
+</div>
 
-// ─── LINE Client ───────────────────────────────────────────────
-const lineConfig = {
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.LINE_CHANNEL_SECRET,
+<!-- หน้าหลัก -->
+<div id="screen-main" class="body">
+  <button class="btn-main" id="btn-create" onclick="showScreen('screen-create')" disabled>
+    ⏳ กำลังโหลด...
+  </button>
+  <div class="divider">หรือ</div>
+  <button class="btn-secondary" onclick="showScreen('screen-join')">🔗 Join Trip ด้วย Code</button>
+</div>
+
+<!-- หน้าสร้าง Trip -->
+<div id="screen-create" class="body hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
+    <span style="font-size:16px;font-weight:600">สร้าง Trip ใหม่</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">จุดเริ่มต้น</div>
+    <div class="field-row" onclick="openSearchModal('origin')">
+      <div class="field-icon" style="background:#E6F1FB">🔵</div>
+      <div class="field-text">
+        <div class="field-name placeholder" id="origin-display">ค้นหาจุดออกเดินทาง...</div>
+        <div class="field-sub" id="origin-sub">แตะเพื่อค้นหาสถานที่</div>
+      </div>
+      <div class="field-chevron">›</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">จุดแวะระหว่างทาง</div>
+    <div class="waypoint-list" id="waypoint-list"></div>
+  </div>
+  <div class="add-wp" onclick="openSearchModal('waypoint')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#185FA5" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="11" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
+    เพิ่มจุดแวะ
+  </div>
+
+  <div class="card">
+    <div class="card-title">จุดหมาย</div>
+    <div class="field-row" onclick="openSearchModal('destination')">
+      <div class="field-icon" style="background:#E1F5EE">🏁</div>
+      <div class="field-text">
+        <div class="field-name placeholder" id="destination-display">ค้นหาจุดหมายปลายทาง...</div>
+        <div class="field-sub" id="destination-sub">แตะเพื่อค้นหาสถานที่</div>
+      </div>
+      <div class="field-chevron">›</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">คุณอยู่คันไหน</div>
+    <div class="car-grid">
+      <div class="car-btn sel-a" id="car-a-btn" onclick="selectCar('A')">
+        <div class="car-btn-icon">🚗</div><div class="car-btn-name">คัน A</div>
+        <div class="car-btn-sub">คุณ (คนสร้าง)</div>
+      </div>
+      <div class="car-btn" id="car-b-btn" onclick="selectCar('B')">
+        <div class="car-btn-icon">🚙</div><div class="car-btn-name">คัน B</div>
+        <div class="car-btn-sub">เพื่อนจะ join</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ประเมินเส้นทาง -->
+  <button class="btn-estimate" id="btn-estimate" onclick="estimateRoute()">
+    🔍 ประเมินเส้นทางก่อนสร้าง
+  </button>
+
+  <!-- ผลประเมิน -->
+  <div class="estimate-card" id="estimate-card">
+    <div class="card-title" style="padding:12px 14px 4px">สรุปเส้นทาง</div>
+    <div class="estimate-summary">
+      <div class="estimate-cell" style="background:#E6F1FB">
+        <div class="estimate-num" id="est-dist" style="color:#185FA5">—</div>
+        <div class="estimate-unit" style="color:#378ADD">กิโลเมตร</div>
+      </div>
+      <div class="estimate-cell" style="background:#E1F5EE">
+        <div class="estimate-num" id="est-dur" style="color:#0F6E56">—</div>
+        <div class="estimate-unit" style="color:#1D9E75">ชั่วโมง / นาที</div>
+      </div>
+    </div>
+    <div class="estimate-legs" id="estimate-legs"></div>
+  </div>
+
+  <button class="btn-main" onclick="createTrip()">🚀 สร้าง Trip & รับ Code</button>
+</div>
+
+<!-- หน้าแสดง Code -->
+<div id="screen-created" class="body hidden">
+  <div style="font-size:16px;font-weight:600;margin-bottom:4px">✅ สร้าง Trip แล้ว!</div>
+  <div class="success-box">
+    <div style="font-size:13px;color:#0F6E56;font-weight:500">Trip Code</div>
+    <div class="success-code" id="created-code">TRP-0000</div>
+    <div style="font-size:12px;color:#666">แชร์ code นี้ให้เพื่อนในกลุ่ม</div>
+    <button class="copy-btn" onclick="copyCode()">📋 คัดลอก Code</button>
+  </div>
+  <div class="card">
+    <div class="card-title">สรุปเส้นทาง</div>
+    <div id="created-route" style="padding:10px 14px;font-size:13px;color:#444;line-height:1.8"></div>
+  </div>
+  <button class="btn-secondary" onclick="openInGoogleMaps()" style="border-radius:14px;padding:13px">
+    🗺️ เปิดเส้นทางใน Google Maps
+  </button>
+  <button class="btn-main" onclick="startTracking()">🗺️ เปิดแผนที่ Live</button>
+</div>
+
+<!-- หน้า Join -->
+<div id="screen-join" class="body hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:#185FA5;font-size:14px;cursor:pointer">← กลับ</button>
+    <span style="font-size:16px;font-weight:600">Join Trip</span>
+  </div>
+  <!-- Tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:4px">
+    <button id="tab-code" onclick="switchJoinTab('code')"
+      style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+      🔑 กรอก Code
+    </button>
+    <button id="tab-list" onclick="switchJoinTab('list')"
+      style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e8e8e8;background:#fff;color:#888;font-size:13px;font-weight:500;cursor:pointer">
+      📋 เลือกจากรายการ
+    </button>
+  </div>
+
+  <!-- Tab: กรอก Code -->
+  <div id="tab-code-panel" class="card" style="padding:16px">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:40px;margin-bottom:6px">🔗</div>
+      <div style="font-size:14px;font-weight:500">กรอก Trip Code</div>
+      <div style="font-size:12px;color:#888;margin-top:3px">รับ code จากคนสร้าง trip</div>
+    </div>
+    <input class="code-input" id="join-code-input" placeholder="TRP-XXXX" maxlength="8"
+      oninput="this.value=this.value.toUpperCase()" />
+    <button class="btn-main" onclick="searchTrip()" style="border-radius:10px;padding:12px;margin-top:10px">🔍 ค้นหา Trip</button>
+  </div>
+
+  <!-- Tab: รายการ Trip -->
+  <div id="tab-list-panel" class="hidden">
+    <div class="card" style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:#888">Trip ที่เปิดอยู่ในกลุ่มนี้</div>
+      <button onclick="loadTripList()" style="background:none;border:none;color:#185FA5;font-size:12px;cursor:pointer">🔄 รีเฟรช</button>
+    </div>
+    <div id="trip-list-items" style="display:flex;flex-direction:column;gap:8px;margin-top:0">
+      <div style="text-align:center;color:#aaa;font-size:13px;padding:20px">กำลังโหลด...</div>
+    </div>
+  </div>
+  <div id="join-result" class="hidden">
+    <div class="result-card">
+      <div class="result-title">✅ พบ Trip!</div>
+      <div class="result-route" id="join-route-text"></div>
+      <div class="result-sub" id="join-sub-text"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">เลือกคันที่คุณอยู่</div>
+      <div class="car-grid" id="join-car-grid"></div>
+    </div>
+    <button class="btn-main" onclick="joinTrip()">✅ Join Trip นี้</button>
+  </div>
+</div>
+
+<!-- Search Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeSearchModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <div class="modal-title" id="modal-title">ค้นหาสถานที่</div>
+        <button class="modal-close" onclick="closeSearchModal()">×</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="modal-search" id="modal-search-input"
+          placeholder="พิมพ์ชื่อสถานที่ เช่น พัทยา สยาม"
+          autocomplete="off" autocorrect="off" spellcheck="false" />
+        <div class="search-spinner" id="search-spinner"></div>
+        <button class="clear-btn" id="clear-btn" onclick="clearSearch()">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="search-results">
+        <div class="search-hint">
+          <div class="search-hint-icon">🗺️</div>
+          <div>พิมพ์ชื่อสถานที่<br>เช่น "พัทยา" "เชียงใหม่" "สยามพารากอน"</div>
+        </div>
+      </div>
+    </div>
+    <div class="google-attr" id="google-attr" style="display:none">powered by Google</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE      = window.location.origin;
+const urlParams = new URLSearchParams(window.location.search);
+const LIFF_ID   = urlParams.get('liffId')  || '';
+const GROUP_ID  = urlParams.get('groupId') || '';
+
+let state = {
+  userId: null, displayName: null,
+  origin: null, waypoints: [], destination: null,
+  selectedCar: 'A', tripCode: null,
+  foundTrip: null, joinCarId: 'B',
 };
-const client = new Client(lineConfig);
 
-// ─── Upstash Redis ─────────────────────────────────────────────
-// Key schema:
-//   trip:{tripCode}               → trip object          TTL 24h
-//   sess:{userId}                 → {tripCode, carId}    TTL 24h
-//   dist:{userId}                 → {district, sentAt}   TTL 2h
-//   recent:{tripCode}:{district}  → {userId, sentAt}     TTL 3min
-//   gps:{userId}                  → {lat,lon,district,updatedAt} TTL 4h
-//   group:{groupId}               → tripCode             TTL 24h
-const redis = new Redis({
-  url:   process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+// ─── Google Maps ──────────────────────────────────────────────
+let autoSvc = null, placesSvc = null, mapsReady = false;
 
-const TTL_TRIP    = 60 * 60 * 24;
-const TTL_SESSION = 60 * 60 * 24;
-const TTL_DIST    = 60 * 60 * 2;
-const TTL_RECENT  = 60 * 3;
-const TTL_GPS     = 60 * 60 * 4;
-const TTL_GROUP   = 60 * 60 * 24;
-
-const getTrip      = (code)          => redis.get(`trip:${code}`);
-const setTrip      = (code, v)       => redis.set(`trip:${code}`, v,    { ex: TTL_TRIP });
-const getSession   = (uid)           => redis.get(`sess:${uid}`);
-const setSession   = (uid, v)        => redis.set(`sess:${uid}`, v,     { ex: TTL_SESSION });
-const delSession   = (uid)           => redis.del(`sess:${uid}`);
-const getDist      = (uid)           => redis.get(`dist:${uid}`);
-const setDist      = (uid, v)        => redis.set(`dist:${uid}`, v,     { ex: TTL_DIST });
-const delDist      = (uid)           => redis.del(`dist:${uid}`);
-const getRecent    = (code, d)       => redis.get(`recent:${code}:${d}`);
-const setRecent    = (code, d, v)    => redis.set(`recent:${code}:${d}`, v, { ex: TTL_RECENT });
-const getGps       = (uid)           => redis.get(`gps:${uid}`);
-const setGps       = (uid, v)        => redis.set(`gps:${uid}`, v,     { ex: TTL_GPS });
-const delGps       = (uid)           => redis.del(`gps:${uid}`);
-const getGroupTrip = (gid)           => redis.get(`group:${gid}`);
-const setGroupTrip = (gid, code)     => redis.set(`group:${gid}`, code, { ex: TTL_GROUP });
-
-// ─── Static files ──────────────────────────────────────────────
-app.use("/liff", express.static(path.join(__dirname, "liff")));
-
-// ─── LINE Webhook (ต้องอยู่ก่อน express.json() เสมอ) ──────────
-// express.json() จะทำให้ LINE middleware อ่าน raw body ไม่ได้
-// ส่งผล SignatureValidationFailed
-app.post("/webhook", middleware(lineConfig), async (req, res) => {
-  res.sendStatus(200);
-  for (const event of req.body.events || []) {
-    try { await handleEvent(event); }
-    catch (e) { console.error("Event error:", e.message); }
-  }
-});
-
-async function handleEvent(event) {
-  // DEBUG LOG — ลบออกหลังได้ groupId แล้ว
-  console.log("[EVENT]", JSON.stringify({
-    type:    event.type,
-    groupId: event.source?.groupId,
-    userId:  event.source?.userId,
-    text:    event.message?.text,
-  }));
-
-  if (event.type === "join") {
-    const groupId = event.source.groupId;
-    await client.pushMessage(groupId, {
-      type: "text",
-      text: `สวัสดีครับ TripWeather Bot พร้อมแล้ว!\n\nสร้าง trip ได้ที่:\n${process.env.BASE_URL}/liff/setup.html?liffId=${process.env.LIFF_ID}&groupId=${groupId}`,
+async function loadGoogleMaps() {
+  try {
+    const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
+    if (!cfg.mapsKey) throw new Error('no key');
+    await new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${cfg.mapsKey}&libraries=places&language=th`;
+      s.onload = ok; s.onerror = fail;
+      document.head.appendChild(s);
     });
-  }
-
-  if (event.type === "message" && event.message.type === "text") {
-    const text    = event.message.text.trim();
-    const textUP  = text.toUpperCase();
-    const userId  = event.source.userId;
-    const groupId = event.source.groupId;
-
-    // หยุดติดตาม
-    if (textUP === "STOP" || text === "หยุด") {
-      await Promise.all([delSession(userId), delDist(userId), delGps(userId)]);
-      return client.replyMessage(event.replyToken, {
-        type: "text", text: "หยุดติดตาม GPS แล้วครับ ขอบคุณที่ใช้งาน TripWeather!",
-      });
-    }
-
-    // ดูสถานะ
-    if (textUP === "STATUS" || text === "สถานะ") {
-      return handleStatusCommand(groupId, event.replyToken);
-    }
-  }
-}
-
-// ─── Status Command ────────────────────────────────────────────
-async function findTripByGroupId(groupId) {
-  console.log("[STATUS] findTripByGroupId:", groupId);
-
-  // 1. ลอง key ตรงก่อน
-  const tripCode = await getGroupTrip(groupId);
-  console.log("[STATUS] getGroupTrip result:", tripCode);
-  if (tripCode) {
-    const trip = await getTrip(tripCode);
-    console.log("[STATUS] getTrip result:", trip ? trip.tripCode : "null");
-    if (trip) return trip;
-  }
-
-  // 2. SCAN ทุก trip
-  let allKeys = [], cursor = 0;
-  do {
-    const [nc, keys] = await redis.scan(cursor, { match: "trip:*", count: 100 });
-    cursor = Number(nc); allKeys = allKeys.concat(keys);
-  } while (cursor !== 0);
-
-  console.log("[STATUS] SCAN found keys:", allKeys.length, allKeys);
-
-  const results = await Promise.all(allKeys.map(k => redis.get(k)));
-  const trips   = results.filter(Boolean);
-  console.log("[STATUS] trips in Redis:", trips.map(t => ({ code: t.tripCode, groupId: t.groupId })));
-
-  const found = trips
-    .sort((a, b) => (b.createdAt||0) - (a.createdAt||0))
-    .find(t => t.groupId === groupId);
-
-  console.log("[STATUS] found trip:", found ? found.tripCode : "none");
-  if (found) await setGroupTrip(groupId, found.tripCode);
-  return found || null;
-}
-
-async function handleStatusCommand(groupId, replyToken) {
-  if (!groupId) return;
-
-  const trip = await findTripByGroupId(groupId);
-  if (!trip) {
-    return client.replyMessage(replyToken, {
-      type: "text", text: "ยังไม่มี Trip ที่กำลังดำเนินการในกลุ่มนี้ครับ\n\nสร้าง trip ได้ที่:\n" +
-        `${process.env.BASE_URL}/liff/setup.html?liffId=${process.env.LIFF_ID}&groupId=${groupId}`,
-    });
-  }
-
-  // ดึงข้อมูลแต่ละคัน
-  const carEntries = Object.entries(trip.cars || {});
-  const carInfo = {};
-  for (const [carId, car] of carEntries) {
-    let latestDist = null, latestGps = null, latestAt = 0;
-    for (const uid of (car.members || [])) {
-      const [d, g] = await Promise.all([getDist(uid), getGps(uid)]);
-      if (d && (d.sentAt || 0) > latestAt) {
-        latestDist = d; latestAt = d.sentAt || 0;
-      }
-      if (g && (g.updatedAt || 0) > latestAt) {
-        latestGps = g;
-      }
-    }
-    carInfo[carId] = { ...car, dist: latestDist, gps: latestGps };
-  }
-
-  const gap = await calcCarGap(trip);
-  return client.replyMessage(replyToken, buildStatusFlexMessage(trip, carInfo, gap));
-}
-
-// ─── Config API ────────────────────────────────────────────────
-// express.json() ต้องอยู่หลัง webhook route เท่านั้น
-app.use(express.json());
-
-app.get("/api/config", (req, res) => {
-  res.json({ mapsKey: process.env.GOOGLE_MAPS_KEY || "" });
-});
-
-// ─── GPS Webhook ───────────────────────────────────────────────
-app.post("/api/location", async (req, res) => {
-  const { userId, groupId, tripCode, carId, lat, lon } = req.body;
-  if (!userId || !lat || !lon || !groupId) {
-    return res.status(400).json({ error: "missing fields" });
-  }
-
-  try {
-    const district = await getDistrict(lat, lon);
-    if (!district) return res.json({ status: "no_district" });
-
-    const now = Date.now();
-
-    // บันทึก GPS ล่าสุด + ผูก groupId → tripCode ถ้ายังไม่มี
-    const existingGroup = groupId ? await getGroupTrip(groupId) : null;
-    await Promise.all([
-      setGps(userId, { lat, lon, updatedAt: now }),
-      groupId && tripCode && !existingGroup ? setGroupTrip(groupId, tripCode) : Promise.resolve(),
-    ]);
-
-    // Dedup: ยังอยู่อำเภอเดิม
-    const prevDist = await getDist(userId);
-    if (prevDist?.district === district) {
-      return res.json({ status: "same_district", district });
-    }
-
-    const trip = await getTrip(tripCode);
-    const recentEntry = tripCode ? await getRecent(tripCode, district) : null;
-
-    // คันอื่นในกลุ่มเดียวกันยิงอำเภอนี้ไปแล้วภายใน 3 นาที
-    if (recentEntry && recentEntry.userId !== userId) {
-      await setDist(userId, { district, sentAt: now });
-      const minutesDiff = Math.round((now - recentEntry.sentAt) / 60000);
-      const carName = getCarName(trip, userId);
-      const gap = await calcCarGap(trip);
-      await client.pushMessage(groupId, buildPillMessage(carName, district, minutesDiff, gap));
-      return res.json({ status: "pill_sent", district });
-    }
-
-    // ส่ง Flex Message เต็ม
-    await Promise.all([
-      setDist(userId, { district, sentAt: now }),
-      tripCode ? setRecent(tripCode, district, { userId, sentAt: now }) : Promise.resolve(),
-    ]);
-
-    const carName = getCarName(trip, userId);
-    const [weather, traffic, gap] = await Promise.all([
-      getWeather(lat, lon),
-      getTrafficAhead(lat, lon, trip),
-      calcCarGap(trip),
-    ]);
-
-    await client.pushMessage(groupId, buildFullFlexMessage(carName, district, weather, traffic, gap));
-    res.json({ status: "full_sent", district });
-
+    const el = Object.assign(document.createElement('div'), { style: 'display:none' });
+    document.body.appendChild(el);
+    autoSvc   = new google.maps.places.AutocompleteService();
+    placesSvc = new google.maps.places.PlacesService(el);
+    mapsReady = true;
+    document.getElementById('google-attr').style.display = 'block';
   } catch (e) {
-    console.error("Location error:", e.message);
-    res.status(500).json({ error: e.message });
+    console.warn('Google Maps failed, using Nominatim:', e.message);
+    mapsReady = false;
   }
-});
+  const btn = document.getElementById('btn-create');
+  btn.disabled = false;
+  btn.textContent = '➕ สร้าง Trip ใหม่';
+}
 
-// ─── Trip Management API ───────────────────────────────────────
-
-// สร้าง Trip
-app.post("/api/trip/create", async (req, res) => {
-  const { userId, groupId, origin, waypoints, destination } = req.body;
-  const tripCode = "TRP-" + Math.random().toString(36).substring(2, 6).toUpperCase();
-  const normPlace = (p) => typeof p === "string" ? { name: p, lat: null, lon: null } : (p || null);
-
-  const trip = {
-    tripCode, groupId, createdBy: userId,
-    origin:      normPlace(origin),
-    waypoints:   (waypoints || []).map(normPlace),
-    destination: normPlace(destination),
-    cars: {
-      A: { members: [userId], name: "คัน A" },
-      B: { members: [],       name: "คัน B" },
-    },
-    createdAt: Date.now(),
-  };
-
-  await Promise.all([
-    setTrip(tripCode, trip),
-    setSession(userId, { tripCode, carId: "A" }),
-    groupId ? setGroupTrip(groupId, tripCode) : Promise.resolve(),
-  ]);
-
-  res.json({ tripCode, trip });
-
-  // ส่ง LINE แจ้งกลุ่ม (background — ไม่รอ)
-  if (groupId) {
-    calcRouteDistance(trip)
-      .then(route => client.pushMessage(groupId, buildTripCreatedMessage(trip, route)))
-      .catch(e => console.warn("Trip created message failed:", e.message));
-  }
-});
-
-// Join Trip
-app.post("/api/trip/join", async (req, res) => {
-  const { userId, tripCode, carId } = req.body;
-  const trip = await getTrip(tripCode);
-  if (!trip) return res.status(404).json({ error: "ไม่พบ Trip นี้" });
-
-  if (!trip.cars[carId]) trip.cars[carId] = { members: [], name: `คัน ${carId}` };
-  if (!trip.cars[carId].members.includes(userId)) trip.cars[carId].members.push(userId);
-
-  await Promise.all([
-    setTrip(tripCode, trip),
-    setSession(userId, { tripCode, carId }),
-  ]);
-  res.json({ status: "joined", trip });
-});
-
-// ดึงข้อมูล Trip
-app.get("/api/trip/:code", async (req, res) => {
-  const trip = await getTrip(req.params.code);
-  if (!trip) return res.status(404).json({ error: "ไม่พบ Trip" });
-  res.json(trip);
-});
-
-// รายการ Trip ของกลุ่ม (สำหรับ join screen — ไม่มี userId)
-app.get("/api/trips/public", async (req, res) => {
-  const { groupId } = req.query;
+// ─── LIFF ─────────────────────────────────────────────────────
+async function initLiff() {
   try {
-    // SCAN หา trip ทั้งหมด แล้วกรองตาม groupId
-    let allKeys = [], cursor = 0;
-    do {
-      const [nc, keys] = await redis.scan(cursor, { match: "trip:*", count: 100 });
-      cursor = Number(nc);
-      allKeys = allKeys.concat(keys);
-    } while (cursor !== 0);
-
-    const results = await Promise.all(allKeys.map(k => redis.get(k)));
-    const trips   = results.filter(t => t && (!groupId || t.groupId === groupId))
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-      .slice(0, 10)  // สูงสุด 10 trip
-      .map(t => ({
-        tripCode:     t.tripCode,
-        originName:   t.origin?.name      ?? t.origin      ?? '?',
-        destName:     t.destination?.name ?? t.destination ?? '?',
-        waypointCount: (t.waypoints || []).length,
-        createdAt:    t.createdAt,
-        carsInfo: Object.fromEntries(
-          Object.entries(t.cars || {}).map(([id, car]) => [id, car.members.length])
-        ),
-      }));
-
-    res.json(trips);
+    await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
+    if (liff.isLoggedIn()) {
+      const p = await liff.getProfile();
+      state.userId = p.userId; state.displayName = p.displayName;
+    } else { liff.login(); }
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.warn('LIFF dev mode:', e.message);
+    state.userId = 'dev-' + Date.now(); state.displayName = 'ผู้ทดสอบ';
+  }
+}
+
+Promise.all([initLiff(), loadGoogleMaps()]).then(() => {
+  // ถ้ามี joinCode ใน URL → auto-open join screen
+  const joinCode = urlParams.get('joinCode');
+  if (joinCode) {
+    showScreen('screen-join');
+    document.getElementById('join-code-input').value = joinCode.toUpperCase();
+    setTimeout(() => searchTrip(), 600);
   }
 });
 
-// ─── Positions API (map polling) ──────────────────────────────
-app.get("/api/trip/:code/positions", async (req, res) => {
-  const trip = await getTrip(req.params.code);
-  if (!trip) return res.status(404).json({ error: "ไม่พบ Trip" });
+// ─── Screen Nav ───────────────────────────────────────────────
+function showScreen(id) {
+  ['screen-main','screen-create','screen-created','screen-join']
+    .forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
 
-  const positions = {};
-  for (const [carId, car] of Object.entries(trip.cars || {})) {
-    let latest = null, latestAt = 0;
-    for (const uid of (car.members || [])) {
-      const g = await getGps(uid);
-      if (g && (g.updatedAt || 0) > latestAt) {
-        latest = g; latestAt = g.updatedAt;
+// ─── Search Modal ──────────────────────────────────────────────
+let modalTarget = null, searchTimer = null, pendingPreds = [];
+const TITLES = { origin:'จุดเริ่มต้น', waypoint:'จุดแวะระหว่างทาง', destination:'จุดหมายปลายทาง' };
+
+function openSearchModal(t) {
+  modalTarget = t;
+  document.getElementById('modal-title').textContent = TITLES[t];
+  document.getElementById('modal-search-input').value = '';
+  document.getElementById('clear-btn').classList.remove('show');
+  document.getElementById('search-spinner').classList.remove('show');
+  showHint();
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('modal-search-input').focus(), 350);
+}
+
+function closeSearchModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  clearTimeout(searchTimer); modalTarget = null;
+}
+
+function clearSearch() {
+  document.getElementById('modal-search-input').value = '';
+  document.getElementById('clear-btn').classList.remove('show');
+  showHint();
+  document.getElementById('modal-search-input').focus();
+}
+
+function showHint() {
+  document.getElementById('search-results').innerHTML = `
+    <div class="search-hint"><div class="search-hint-icon">🗺️</div>
+    <div>พิมพ์ชื่อสถานที่<br>เช่น "พัทยา" "เชียงใหม่" "สยามพารากอน"</div></div>`;
+}
+
+document.getElementById('modal-search-input').addEventListener('input', function() {
+  const q = this.value.trim();
+  document.getElementById('clear-btn').classList.toggle('show', q.length > 0);
+  clearTimeout(searchTimer);
+  if (q.length < 2) { showHint(); return; }
+  document.getElementById('search-spinner').classList.add('show');
+  searchTimer = setTimeout(() => mapsReady ? doGoogleSearch(q) : doNominatimSearch(q), 350);
+});
+
+// ── Google Places ──────────────────────────────────────────────
+function doGoogleSearch(q) {
+  autoSvc.getPlacePredictions(
+    { input: q, componentRestrictions: { country: 'th' }, language: 'th' },
+    (preds, status) => {
+      document.getElementById('search-spinner').classList.remove('show');
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !preds?.length) {
+        document.getElementById('search-results').innerHTML =
+          '<div class="no-results">ไม่พบสถานที่ที่ค้นหา<br>ลองเปลี่ยนคำค้นหาครับ</div>';
+        return;
       }
+      pendingPreds = preds;
+      document.getElementById('search-results').innerHTML = preds.map((p, i) => `
+        <div class="result-item" onclick="selectGooglePlace(${i})">
+          <div class="result-pin">${placeIcon(p.types)}</div>
+          <div class="result-info">
+            <div class="result-name">${p.structured_formatting?.main_text || p.description}</div>
+            <div class="result-addr">${p.structured_formatting?.secondary_text || ''}</div>
+          </div>
+          <div class="result-chevron">›</div>
+        </div>`).join('');
     }
-    positions[carId] = latest
-      ? { ...latest, carName: car.name, carId }
-      : { carName: car.name, carId, lat: null, lon: null };
-  }
-
-  res.json({ tripCode: trip.tripCode, positions });
-});
-
-// เช็คระยะห่างระหว่างคัน (เรียกจาก tracker)
-app.post("/api/trip/:code/gap", async (req, res) => {
-  const { userId, lat, lon, notifyLine } = req.body;
-  const trip = await getTrip(req.params.code);
-  if (!trip) return res.status(404).json({ error: "ไม่พบ Trip" });
-
-  // อัปเดต GPS ของ user นี้ก่อน
-  if (userId && lat && lon) {
-    await setGps(userId, { lat, lon, updatedAt: Date.now() });
-  }
-
-  const gap = await calcCarGap(trip);
-  if (!gap) return res.json({ status: "no_data", message: "ยังไม่มีข้อมูล GPS ของอีกคัน" });
-
-  // ส่งแจ้ง LINE ถ้าขอ
-  if (notifyLine && trip.groupId) {
-    const carA = Object.entries(trip.cars).find(([id]) => id === 'A')?.[1];
-    const carB = Object.entries(trip.cars).find(([id]) => id === 'B')?.[1];
-    await client.pushMessage(trip.groupId, buildGapMessage(
-      carA?.name || 'คัน A', gap.distA,
-      carB?.name || 'คัน B', gap.distB,
-      gap.distKm
-    ));
-  }
-
-  res.json({ status: "ok", gap });
-});
-
-// ─── Admin API ─────────────────────────────────────────────────
-function adminAuth(req, res, next) {
-  const key = req.query.key || req.headers['x-admin-key'];
-  if (!process.env.ADMIN_SECRET || key !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  next();
-}
-
-app.get('/api/admin/trips', adminAuth, async (req, res) => {
-  try {
-    let allKeys = [], cursor = 0;
-    do {
-      const [nc, keys] = await redis.scan(cursor, { match: 'trip:*', count: 100 });
-      cursor = Number(nc); allKeys = allKeys.concat(keys);
-    } while (cursor !== 0);
-    if (!allKeys.length) return res.json([]);
-    const results = await Promise.all(allKeys.map(k => redis.get(k)));
-    res.json(results.filter(Boolean).sort((a, b) => (b.createdAt||0) - (a.createdAt||0)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete('/api/admin/trip/:code', adminAuth, async (req, res) => {
-  await redis.del(`trip:${req.params.code}`);
-  res.json({ status: 'deleted' });
-});
-
-// ─── Helpers ───────────────────────────────────────────────────
-
-async function calcRouteDistance(trip) {
-  try {
-    const points = [
-      trip.origin,
-      ...(trip.waypoints || []),
-      trip.destination,
-    ].filter(p => p?.lat && p?.lon);
-
-    if (points.length < 2) return null;
-
-    const coords = points.map(p => `${p.lon},${p.lat}`).join(';');
-    const resp   = await axios.get(
-      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`,
-      { timeout: 6000 }
-    );
-    const route = resp.data.routes?.[0];
-    if (!route) return null;
-
-    return {
-      distKm: Math.round(route.distance / 1000),
-      durMin: Math.round(route.duration  / 60),
-    };
-  } catch { return null; }
-}
-
-// Cache reverse geocode (~1.1km grid, 30 นาที)
-const geocodeCache = new Map();
-
-async function getDistrict(lat, lon) {
-  const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
-  if (geocodeCache.has(key)) return geocodeCache.get(key);
-
-  let result = null;
-
-  // ── 1. ลอง Google Maps Geocoding API ก่อน (ถ้ามี key) ─────────
-  if (process.env.GOOGLE_MAPS_KEY) {
-    try {
-      const resp = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=th&result_type=administrative_area_level_2|locality&key=${process.env.GOOGLE_MAPS_KEY}`,
-        { timeout: 6000 }
-      );
-      const results = resp.data.results || [];
-      for (const r of results) {
-        for (const comp of (r.address_components || [])) {
-          if (comp.types.includes("administrative_area_level_2") ||
-              comp.types.includes("locality")) {
-            result = comp.long_name;
-            break;
-          }
-        }
-        if (result) break;
-      }
-    } catch (e) {
-      console.warn("Google Geocode error:", e.message);
-    }
-  }
-
-  // ── 2. Fallback: Nominatim (ถ้า Google ไม่มี / ล้มเหลว) ───────
-  if (!result) {
-    try {
-      await new Promise(r => setTimeout(r, 1100));
-      const resp = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=th`,
-        {
-          headers: { "User-Agent": "TripWeatherBot/1.0 (tripweather-bot.onrender.com)" },
-          timeout: 8000,
-        }
-      );
-      const addr = resp.data.address || {};
-      result = addr.county || addr.city_district || addr.suburb || addr.city || null;
-    } catch (e) {
-      console.error("Nominatim error:", e.message);
-    }
-  }
-
-  if (result) {
-    geocodeCache.set(key, result);
-    setTimeout(() => geocodeCache.delete(key), 30 * 60 * 1000);
-  }
-  return result;
-}
-
-async function getWeather(lat, lon) {
-  const resp = await axios.get(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation_probability,windspeed_10m,uv_index&timezone=Asia%2FBangkok`
   );
-  const c = resp.data.current || {};
-  return {
-    temp: Math.round(c.temperature_2m || 0),
-    rain: Math.round(c.precipitation_probability || 0),
-    wind: Math.round(c.windspeed_10m || 0),
-    uv:   Math.round(c.uv_index || 0),
-  };
 }
 
-async function getTrafficAhead(lat, lon, trip) {
-  if (!trip?.destination?.lat || !trip?.destination?.lon) return null;
-  try {
-    const { lat: dlat, lon: dlon, name } = trip.destination;
-    const resp = await axios.get(
-      `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${dlon},${dlat}?overview=false`
-    );
-    const route = resp.data.routes?.[0];
-    if (!route) return null;
-    return { distKm: Math.round(route.distance/1000), durMin: Math.round(route.duration/60), destName: name || "ปลายทาง" };
-  } catch { return null; }
-}
-
-// คำนวณระยะห่างระหว่างคัน (Haversine)
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 +
-    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
-  return R * 2 * Math.asin(Math.sqrt(a));
-}
-
-async function calcCarGap(trip) {
-  if (!trip) return null;
-  const carEntries = Object.entries(trip.cars || {});
-  const gpsPerCar  = {};
-
-  for (const [carId, car] of carEntries) {
-    let latest = null, latestAt = 0;
-    for (const uid of (car.members || [])) {
-      const g = await getGps(uid);
-      if (g && (g.updatedAt || 0) > latestAt) { latest = g; latestAt = g.updatedAt; }
+function selectGooglePlace(i) {
+  const pred = pendingPreds[i]; if (!pred) return;
+  document.getElementById('search-spinner').classList.add('show');
+  placesSvc.getDetails(
+    { placeId: pred.place_id, fields: ['name','geometry','formatted_address'] },
+    (place, status) => {
+      document.getElementById('search-spinner').classList.remove('show');
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry)
+        return showToast('ดึงพิกัดไม่ได้ ลองใหม่อีกครั้ง');
+      applyPlace(
+        { name: place.name, lat: place.geometry.location.lat(), lon: place.geometry.location.lng() },
+        pred.structured_formatting?.secondary_text || place.formatted_address || ''
+      );
     }
-    gpsPerCar[carId] = latest;
+  );
+}
+
+// ── Nominatim fallback ─────────────────────────────────────────
+let _nomItems = [];
+async function doNominatimSearch(q) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=th&addressdetails=1&countrycodes=th`,
+      { headers: { 'User-Agent': 'TripWeatherBot/1.0' } }
+    ).then(r => r.json());
+    document.getElementById('search-spinner').classList.remove('show');
+    if (!r.length) {
+      document.getElementById('search-results').innerHTML =
+        '<div class="no-results">ไม่พบสถานที่ที่ค้นหา</div>'; return;
+    }
+    _nomItems = r.map(x => {
+      const a = x.address || {};
+      const name = x.name || a.road || a.city || x.display_name.split(',')[0];
+      const addr = [a.city, a.county, a.state].filter(Boolean)
+        .filter((v,i,arr)=>arr.indexOf(v)===i).join(' · ');
+      return { name, addr: addr || x.display_name, lat: +x.lat, lon: +x.lon, types: [x.type] };
+    });
+    document.getElementById('search-results').innerHTML = _nomItems.map((it, i) => `
+      <div class="result-item" onclick="selectNomItem(${i})">
+        <div class="result-pin">${placeIcon(it.types)}</div>
+        <div class="result-info">
+          <div class="result-name">${it.name}</div>
+          <div class="result-addr">${it.addr}</div>
+        </div>
+        <div class="result-chevron">›</div>
+      </div>`).join('');
+  } catch {
+    document.getElementById('search-spinner').classList.remove('show');
+    document.getElementById('search-results').innerHTML =
+      '<div class="no-results">เกิดข้อผิดพลาด กรุณาลองใหม่</div>';
   }
-
-  const carIds = Object.keys(gpsPerCar);
-  if (carIds.length < 2) return null;
-
-  const [idA, idB] = carIds;
-  const posA = gpsPerCar[idA], posB = gpsPerCar[idB];
-  if (!posA || !posB) return null;
-
-  const distKm = Math.round(haversine(posA.lat, posA.lon, posB.lat, posB.lon) * 10) / 10;
-  return { distKm, distA: posA.district, distB: posB.district };
+}
+function selectNomItem(i) {
+  const it = _nomItems[i]; if (!it) return;
+  applyPlace({ name: it.name, lat: it.lat, lon: it.lon }, it.addr);
 }
 
-function getCarName(trip, userId) {
-  if (!trip) return "รถ";
-  for (const [, car] of Object.entries(trip.cars || {})) {
-    if (car.members?.includes(userId)) return car.name;
+// ── Apply & Icon ───────────────────────────────────────────────
+function applyPlace(obj, addr) {
+  if (modalTarget === 'origin') {
+    state.origin = obj;
+    const el = document.getElementById('origin-display');
+    el.textContent = obj.name; el.classList.remove('placeholder');
+    document.getElementById('origin-sub').textContent = addr;
+  } else if (modalTarget === 'destination') {
+    state.destination = obj;
+    const el = document.getElementById('destination-display');
+    el.textContent = obj.name; el.classList.remove('placeholder');
+    document.getElementById('destination-sub').textContent = addr;
+  } else if (modalTarget === 'waypoint') {
+    state.waypoints.push(obj); renderWaypoints();
   }
-  return "รถ";
+  // reset estimate เมื่อเปลี่ยนสถานที่
+  document.getElementById('estimate-card').classList.remove('show');
+  document.getElementById('btn-estimate').textContent = '🔍 ประเมินเส้นทางก่อนสร้าง';
+  closeSearchModal();
 }
 
-// ─── Builders ──────────────────────────────────────────────────
-
-function buildTripCreatedMessage(trip, route) {
-  const oName = trip.origin?.name      ?? trip.origin      ?? '?';
-  const dName = trip.destination?.name ?? trip.destination ?? '?';
-  const wps   = (trip.waypoints || []).map(w => w?.name ?? w).filter(Boolean);
-  const liffUrl = process.env.LIFF_ID ? `https://liff.line.me/${process.env.LIFF_ID}?joinCode=${trip.tripCode}&groupId=${trip.groupId}` : `${process.env.BASE_URL}/liff/setup.html?joinCode=${trip.tripCode}&groupId=${trip.groupId}`;
-
-  // route summary cells
-  const routeCells = route ? [
-    {
-      type: "box", layout: "horizontal", spacing: "md", margin: "md",
-      contents: [
-        { type: "box", layout: "vertical", flex: 1, backgroundColor: "#E6F1FB",
-          cornerRadius: "8px", paddingAll: "10px",
-          contents: [
-            { type: "text", text: "ระยะทาง", size: "xxs", color: "#185FA5" },
-            { type: "text", text: `${route.distKm} กม.`, size: "lg", weight: "bold", color: "#0C447C" },
-          ] },
-        { type: "box", layout: "vertical", flex: 1, backgroundColor: "#E1F5EE",
-          cornerRadius: "8px", paddingAll: "10px",
-          contents: [
-            { type: "text", text: "เวลาโดยประมาณ", size: "xxs", color: "#0F6E56" },
-            { type: "text",
-              text: route.durMin < 60
-                ? `${route.durMin} น.`
-                : `${Math.floor(route.durMin/60)}ชม.${route.durMin%60>0?route.durMin%60+'น.':""}`,
-              size: "lg", weight: "bold", color: "#085041" },
-          ] },
-      ],
-    },
-  ] : [];
-
-  // waypoint rows
-  const waypointRows = [
-    { icon: "🔵", name: oName },
-    ...wps.map(w => ({ icon: "🟡", name: w })),
-    { icon: "🏁", name: dName },
-  ].map(item => ({
-    type: "box", layout: "horizontal", spacing: "sm", alignItems: "center",
-    contents: [
-      { type: "text", text: item.icon, size: "sm", flex: 0 },
-      { type: "text", text: item.name, size: "sm", color: "#1a1a1a", flex: 1, wrap: true },
-    ],
-  }));
-
-  return {
-    type: "flex",
-    altText: `🆕 Trip ใหม่! ${trip.tripCode} | ${oName} → ${dName}`,
-    contents: {
-      type: "bubble",
-      header: {
-        type: "box", layout: "vertical",
-        backgroundColor: "#06C755", paddingAll: "12px",
-        contents: [
-          { type: "text", text: "🆕 Trip ใหม่พร้อมแล้ว!", weight: "bold", color: "#ffffff", size: "md" },
-          { type: "text", text: trip.tripCode, color: "#ffffffcc", size: "xs", margin: "xs",
-            letterSpacing: "2px" },
-        ],
-      },
-      body: {
-        type: "box", layout: "vertical", paddingAll: "14px", spacing: "sm",
-        contents: [
-          { type: "box", layout: "vertical", spacing: "xs", contents: waypointRows },
-          ...routeCells,
-        ],
-      },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "12px", spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            action: { type: "uri", label: "🚙 Join Trip นี้", uri: liffUrl },
-            style: "primary", color: "#06C755", height: "sm",
-          },
-          {
-            type: "text",
-            text: `Code: ${trip.tripCode}  ·  แชร์ให้เพื่อนในกลุ่ม`,
-            size: "xxs", color: "#aaa", align: "center",
-          },
-        ],
-      },
-    },
-  };
+function placeIcon(types = []) {
+  const t = types.join(' ');
+  if (/hospital|clinic|health/.test(t))            return '🏥';
+  if (/school|university/.test(t))                 return '🏫';
+  if (/gas_station|fuel/.test(t))                  return '⛽';
+  if (/lodging|hotel/.test(t))                     return '🏨';
+  if (/restaurant|food|cafe/.test(t))              return '🍽️';
+  if (/airport/.test(t))                           return '✈️';
+  if (/train|transit/.test(t))                     return '🚉';
+  if (/shopping|store/.test(t))                    return '🛍️';
+  if (/park|natural/.test(t))                      return '🌳';
+  if (/locality|city|town|administrative/.test(t)) return '🏙️';
+  return '📍';
 }
 
-function buildFullFlexMessage(carName, district, weather, traffic, gap) {
-  // ใช้ buildLocationFlexMessage แทนถ้าไม่ต้องการอากาศ
-  return buildLocationFlexMessage(carName, district, gap);
+// ─── Waypoints ─────────────────────────────────────────────────
+function renderWaypoints() {
+  document.getElementById('waypoint-list').innerHTML = state.waypoints.map((wp, i) => `
+    <div class="wp-item">
+      <div class="wp-dot"></div>
+      <div class="wp-name">${wp.name}</div>
+      <div class="wp-del" onclick="removeWaypoint(${i})">✕</div>
+    </div>`).join('');
+}
+function removeWaypoint(i) {
+  state.waypoints.splice(i, 1); renderWaypoints();
+  document.getElementById('estimate-card').classList.remove('show');
 }
 
-function buildLocationFlexMessage(carName, district, gap) {
-  const time    = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
-  const mapUrl  = process.env.LIFF_ID
-    ? `https://liff.line.me/${process.env.LIFF_ID}`
-    : process.env.BASE_URL + "/liff/map.html";
-  const gapText = gap
-    ? (gap.distKm < 1 ? `${Math.round(gap.distKm*1000)} ม.` : `${gap.distKm} กม.`)
-    : null;
-
-  return {
-    type: "flex",
-    altText: `${carName} เข้า ${district} · ${time} น.`,
-    contents: {
-      type: "bubble", size: "kilo",
-      body: {
-        type: "box", layout: "vertical", paddingAll: "14px", spacing: "sm",
-        contents: [
-          {
-            type: "box", layout: "horizontal", alignItems: "center", spacing: "md",
-            contents: [
-              {
-                type: "box", layout: "vertical", width: "40px", height: "40px",
-                backgroundColor: "#1a1a1a", cornerRadius: "20px",
-                alignItems: "center", justifyContent: "center",
-                contents: [{ type: "text", text: "📍", size: "lg", align: "center" }],
-              },
-              {
-                type: "box", layout: "vertical", flex: 1,
-                contents: [
-                  { type: "text", text: `เข้า ${district}`, size: "md", weight: "bold", color: "#1a1a1a", wrap: true },
-                  { type: "text", text: `${carName} · ${time} น.`, size: "xs", color: "#888", margin: "xs" },
-                ],
-              },
-            ],
-          },
-          ...(gapText ? [{
-            type: "box", layout: "horizontal", backgroundColor: "#f5f5f5",
-            cornerRadius: "8px", paddingAll: "8px", margin: "sm",
-            contents: [
-              { type: "text", text: "📏 ห่างกัน", size: "xs", color: "#888", flex: 1 },
-              { type: "text", text: `~${gapText}`, size: "xs", weight: "bold", color: "#1a1a1a" },
-            ],
-          }] : []),
-        ],
-      },
-      footer: {
-        type: "box", layout: "vertical", paddingAll: "10px",
-        contents: [{
-          type: "button", style: "primary", color: "#1a1a1a", height: "sm",
-          action: { type: "uri", label: "🗺️ ดูแผนที่ Live", uri: mapUrl },
-        }],
-      },
-    },
-  };
+// ─── Car Select ────────────────────────────────────────────────
+function selectCar(id) {
+  state.selectedCar = id;
+  document.getElementById('car-a-btn').className = 'car-btn' + (id==='A'?' sel-a':'');
+  document.getElementById('car-b-btn').className = 'car-btn' + (id==='B'?' sel-b':'');
 }
 
-function _buildFullFlexMessage_UNUSED(carName, district, weather, traffic, gap) {
-  const rainBadge = weather.rain < 20
-    ? { color:"#0F6E56", bg:"#E1F5EE", text:"ไม่มี" }
-    : weather.rain < 50
-    ? { color:"#633806", bg:"#FAEEDA", text:"มีบ้าง" }
-    : { color:"#791F1F", bg:"#FCEBEB", text:"ตกแน่" };
-
-  const uvBadge = weather.uv <= 5
-    ? { color:"#0F6E56", bg:"#E1F5EE", text:"ปกติ" }
-    : weather.uv <= 7
-    ? { color:"#633806", bg:"#FAEEDA", text:"สูง" }
-    : { color:"#791F1F", bg:"#FCEBEB", text:"สูงมาก" };
-
-  const headerColor = weather.rain >= 50 ? "#854F0B" : "#185FA5";
-  const time = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
-
-  const extraContents = [];
-
-  if (traffic) {
-    extraContents.push(
-      { type:"separator", margin:"sm" },
-      { type:"box", layout:"vertical", backgroundColor:"#FFF8E6", cornerRadius:"6px", paddingAll:"8px", margin:"sm",
-        contents:[
-          { type:"text", text:`ถึง ${traffic.destName}`, size:"xs", weight:"bold", color:"#633806" },
-          { type:"text", text:`เหลือ ~${traffic.distKm} กม. · ~${traffic.durMin} นาที`, size:"xs", color:"#3a2800", margin:"xs" },
-        ] }
-    );
+// ─── Estimate Route ────────────────────────────────────────────
+async function estimateRoute() {
+  if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้นก่อน');
+  if (!state.destination) return showToast('กรุณาเลือกจุดหมายก่อน');
+  const btn = document.getElementById('btn-estimate');
+  btn.classList.add('loading');
+  btn.textContent = '⏳ กำลังคำนวณ...';
+  if (mapsReady) {
+    estimateWithGoogle();
+  } else {
+    await estimateWithOSRM();
   }
-
-  if (gap) {
-    const gapText = gap.distKm < 1
-      ? `${Math.round(gap.distKm * 1000)} ม.`
-      : `${gap.distKm} กม.`;
-    extraContents.push(
-      { type:"separator", margin:"sm" },
-      { type:"box", layout:"vertical", backgroundColor:"#f0f0f0", cornerRadius:"6px", paddingAll:"8px", margin:"sm",
-        contents:[
-          { type:"text", text:"📏 ระยะห่างระหว่างคัน", size:"xs", weight:"bold", color:"#555" },
-          { type:"text", text:`~${gapText}`, size:"xs", color:"#333", margin:"xs" },
-        ] }
-    );
-  }
-
-  return {
-    type: "flex",
-    altText: `${carName} เข้า ${district} · ${weather.temp}°C ฝน ${weather.rain}%`,
-    contents: {
-      type: "bubble",
-      header: {
-        type:"box", layout:"vertical", backgroundColor:headerColor, paddingAll:"12px",
-        contents:[
-          { type:"text", text:`เข้า ${district}`, weight:"bold", color:"#ffffff", size:"md" },
-          { type:"text", text:`${carName} · ${time} น.`, color:"#ffffffb3", size:"xs", margin:"xs" },
-        ],
-      },
-      body: {
-        type:"box", layout:"vertical", paddingAll:"12px", spacing:"sm",
-        contents:[
-          { type:"box", layout:"horizontal", spacing:"md", contents:[
-            { type:"box", layout:"vertical", flex:1, backgroundColor:"#f8f8f8", cornerRadius:"8px", paddingAll:"8px",
-              contents:[
-                { type:"text", text:"อุณหภูมิ", size:"xxs", color:"#888888" },
-                { type:"text", text:`${weather.temp}°C`, size:"lg", weight:"bold", color:"#1a1a1a" },
-              ] },
-            { type:"box", layout:"vertical", flex:1, backgroundColor:"#f8f8f8", cornerRadius:"8px", paddingAll:"8px",
-              contents:[
-                { type:"text", text:"ลม", size:"xxs", color:"#888888" },
-                { type:"text", text:`${weather.wind} กม/ช`, size:"sm", weight:"bold", color:"#1a1a1a" },
-              ] },
-          ] },
-          { type:"box", layout:"horizontal", spacing:"md", contents:[
-            { type:"box", layout:"vertical", flex:1, backgroundColor:rainBadge.bg, cornerRadius:"8px", paddingAll:"8px",
-              contents:[
-                { type:"text", text:"ฝน", size:"xxs", color:rainBadge.color },
-                { type:"text", text:`${weather.rain}%`, size:"lg", weight:"bold", color:rainBadge.color },
-                { type:"text", text:rainBadge.text, size:"xxs", color:rainBadge.color },
-              ] },
-            { type:"box", layout:"vertical", flex:1, backgroundColor:uvBadge.bg, cornerRadius:"8px", paddingAll:"8px",
-              contents:[
-                { type:"text", text:"UV Index", size:"xxs", color:uvBadge.color },
-                { type:"text", text:`${weather.uv}`, size:"lg", weight:"bold", color:uvBadge.color },
-                { type:"text", text:uvBadge.text, size:"xxs", color:uvBadge.color },
-              ] },
-          ] },
-          ...extraContents,
-        ],
-      },
-    },
-  };
 }
 
-function buildPillMessage(carName, district, minutesDiff, gap) {
-  const mapUrl = process.env.LIFF_ID
-    ? `https://liff.line.me/${process.env.LIFF_ID}`
-    : process.env.BASE_URL + "/liff/map.html";
-  const gapText = gap
-    ? (gap.distKm < 1 ? `${Math.round(gap.distKm*1000)} ม.` : `${gap.distKm} กม.`)
-    : null;
-  return {
-    type: "flex",
-    altText: `${carName} เข้า ${district} แล้วครับ`,
-    contents: {
-      type: "bubble", size: "kilo",
-      body: {
-        type: "box", layout: "horizontal", paddingAll: "12px", spacing: "md", alignItems: "center",
-        contents: [
-          { type: "box", layout: "vertical", width: "36px", backgroundColor: "#f0f0f0",
-            cornerRadius: "18px", paddingAll: "8px", alignItems: "center",
-            contents: [{ type: "text", text: "🚗", size: "md", align: "center" }] },
-          { type: "box", layout: "vertical", flex: 1,
-            contents: [
-              { type: "text", text: `${carName} เข้า ${district}`, size: "sm", weight: "bold", color: "#1a1a1a", wrap: true },
-              { type: "text",
-                text: [
-                  minutesDiff > 0 ? `ห่างคันแรก ~${minutesDiff} นาที` : "เกือบพร้อมกัน",
-                  gapText ? `· ห่างกัน ~${gapText}` : "",
-                ].filter(Boolean).join(" "),
-                size: "xs", color: "#888", margin: "xs" },
-            ] },
-          { type: "button", style: "link", height: "sm", flex: 0,
-            action: { type: "uri", label: "แผนที่", uri: mapUrl } },
-        ],
-      },
-    },
-  };
-}
-
-function _buildPillMessage_UNUSED(
-  const gapContents = gap ? [
-    { type:"separator", margin:"sm" },
-    { type:"text",
-      text:`📏 ห่างกัน ~${gap.distKm < 1 ? Math.round(gap.distKm*1000)+'ม.' : gap.distKm+'กม.'}`,
-      size:"xs", color:"#888", margin:"sm" },
-  ] : [];
-
-  return {
-    type: "flex",
-    altText: `${carName} เข้า ${district} แล้วครับ`,
-    contents: {
-      type:"bubble", size:"kilo",
-      body:{
-        type:"box", layout:"vertical", paddingAll:"12px", spacing:"sm",
-        contents:[
-          { type:"box", layout:"horizontal", spacing:"md", alignItems:"center",
-            contents:[
-              { type:"box", layout:"vertical", width:"36px", backgroundColor:"#E1F5EE", cornerRadius:"18px", paddingAll:"8px", alignItems:"center",
-                contents:[{ type:"text", text:"🚗", size:"md", align:"center" }] },
-              { type:"box", layout:"vertical", flex:1,
-                contents:[
-                  { type:"text", text:`${carName} เข้า ${district} แล้วครับ`, size:"sm", weight:"bold", color:"#1a1a1a", wrap:true },
-                  { type:"text", text:minutesDiff > 0 ? `ห่างคันแรก ~${minutesDiff} นาที` : "เกือบพร้อมกัน", size:"xs", color:"#888888", margin:"xs" },
-                ] },
-            ] },
-          ...gapContents,
-        ],
-      },
-    },
-  };
-}
-
-function buildGapMessage(nameA, distA, nameB, distB, distKm) {
-  const gapText = distKm < 1 ? `${Math.round(distKm*1000)} ม.` : `${distKm} กม.`;
-  return {
-    type:"flex",
-    altText:`📏 ${nameA} ห่างจาก ${nameB} ~${gapText}`,
-    contents:{
-      type:"bubble",
-      body:{
-        type:"box", layout:"vertical", paddingAll:"14px", spacing:"md",
-        contents:[
-          { type:"text", text:"📏 ระยะห่างระหว่างคัน", weight:"bold", size:"sm", color:"#1a1a1a" },
-          { type:"box", layout:"horizontal", spacing:"md", margin:"md",
-            contents:[
-              { type:"box", layout:"vertical", flex:1, backgroundColor:"#E6F1FB", cornerRadius:"10px", paddingAll:"10px",
-                contents:[
-                  { type:"text", text:nameA, size:"xs", weight:"bold", color:"#0C447C" },
-                  { type:"text", text:distA || "—", size:"xs", color:"#185FA5", margin:"xs" },
-                ] },
-              { type:"box", layout:"vertical", flex:1, backgroundColor:"#E1F5EE", cornerRadius:"10px", paddingAll:"10px",
-                contents:[
-                  { type:"text", text:nameB, size:"xs", weight:"bold", color:"#085041" },
-                  { type:"text", text:distB || "—", size:"xs", color:"#0F6E56", margin:"xs" },
-                ] },
-            ] },
-          { type:"box", layout:"vertical", backgroundColor:"#f8f8f8", cornerRadius:"10px", paddingAll:"10px", margin:"sm",
-            contents:[
-              { type:"text", text:"ระยะห่าง (เส้นตรง)", size:"xs", color:"#888" },
-              { type:"text", text:`~${gapText}`, size:"xl", weight:"bold", color:"#1a1a1a", margin:"xs" },
-            ] },
-        ],
-      },
-    },
-  };
-}
-
-function buildStatusFlexMessage(trip, carInfo, gap) {
-  const oName  = trip.origin?.name      ?? trip.origin      ?? '?';
-  const dName  = trip.destination?.name ?? trip.destination ?? '?';
-  const time   = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
-
-  const carContents = Object.entries(carInfo).map(([carId, info]) => {
-    const hasData = info.dist?.district;
-    const mins    = info.dist?.sentAt ? Math.round((Date.now() - info.dist.sentAt) / 60000) : null;
-    const ageText = mins === null ? '' : mins < 1 ? 'เพิ่งอัปเดต' : `${mins} นาทีที่แล้ว`;
-    const icon    = carId === 'A' ? '🚗' : '🚙';
-    const bg      = carId === 'A' ? '#E6F1FB' : '#E1F5EE';
-    const tc      = carId === 'A' ? '#0C447C' : '#085041';
-    const sc      = carId === 'A' ? '#185FA5' : '#0F6E56';
-
-    return {
-      type:"box", layout:"vertical", backgroundColor:bg, cornerRadius:"10px", paddingAll:"10px",
-      contents:[
-        { type:"text", text:`${icon} ${info.name}`, size:"xs", weight:"bold", color:tc },
-        { type:"text",
-          text: hasData ? info.dist.district : (info.members?.length > 0 ? 'ยังไม่ได้เริ่มติดตาม' : 'ยังไม่มีสมาชิก'),
-          size:"sm", weight:"bold", color:hasData ? "#1a1a1a" : "#aaa", margin:"sm" },
-        ...(ageText ? [{ type:"text", text:ageText, size:"xs", color:sc, margin:"xs" }] : []),
-      ],
-    };
+function estimateWithGoogle() {
+  const svc = new google.maps.DirectionsService();
+  const wps = state.waypoints.filter(w => w.lat && w.lon)
+    .map(w => ({ location: new google.maps.LatLng(w.lat, w.lon), stopover: true }));
+  svc.route({
+    origin:      new google.maps.LatLng(state.origin.lat, state.origin.lon),
+    destination: new google.maps.LatLng(state.destination.lat, state.destination.lon),
+    waypoints:   wps,
+    travelMode:  google.maps.TravelMode.DRIVING,
+    language:    'th',
+  }, (result, status) => {
+    resetEstimateBtn();
+    if (status !== 'OK') return showToast('ประเมินเส้นทางไม่ได้ ลองใหม่อีกครั้ง');
+    const legs      = result.routes[0].legs;
+    const totalDist = legs.reduce((s, l) => s + l.distance.value, 0);
+    const totalDur  = legs.reduce((s, l) => s + l.duration.value, 0);
+    const allPoints = [state.origin, ...state.waypoints, state.destination];
+    const legData   = legs.map((l, i) => ({
+      from:    allPoints[i]?.name   || '',
+      to:      allPoints[i+1]?.name || '',
+      distKm:  Math.round(l.distance.value / 1000),
+      durMin:  Math.round(l.duration.value  / 60),
+    }));
+    showEstimateResult(Math.round(totalDist/1000), Math.round(totalDur/60), legData);
   });
-
-  const gapContents = gap ? [
-    { type:"separator", margin:"md" },
-    { type:"box", layout:"vertical", margin:"md",
-      contents:[
-        { type:"text", text:"📏 ระยะห่างระหว่างคัน (เส้นตรง)", size:"xs", color:"#888" },
-        { type:"text",
-          text:`~${gap.distKm < 1 ? Math.round(gap.distKm*1000)+'ม.' : gap.distKm+' กม.'}`,
-          size:"xl", weight:"bold", color:"#1a1a1a", margin:"xs" },
-      ] },
-  ] : [
-    { type:"separator", margin:"md" },
-    { type:"text", text:"ยังไม่สามารถคำนวณระยะห่างได้\n(ต้องมีทั้ง 2 คันกด 'เริ่มติดตาม GPS' ก่อน)", size:"xs", color:"#aaa", margin:"md", wrap:true },
-  ];
-
-  return {
-    type:"flex",
-    altText:`📍 สถานะ ${trip.tripCode} | ${oName} → ${dName}`,
-    contents:{
-      type:"bubble",
-      header:{
-        type:"box", layout:"vertical", backgroundColor:"#1a1a1a", paddingAll:"12px",
-        contents:[
-          { type:"text", text:`📍 สถานะการเดินทาง`, weight:"bold", color:"#ffffff", size:"sm" },
-          { type:"text", text:`${oName} → ${dName}`, color:"#aaaaaa", size:"xs", margin:"xs", wrap:true },
-          { type:"text", text:`${trip.tripCode} · ตรวจสอบ ${time} น.`, color:"#666666", size:"xs", margin:"xs" },
-        ],
-      },
-      body:{
-        type:"box", layout:"vertical", paddingAll:"12px", spacing:"sm",
-        contents:[
-          { type:"box", layout:"vertical", spacing:"sm", contents: carContents },
-          ...gapContents,
-        ],
-      },
-    },
-  };
 }
 
-// ─── Start ─────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`TripWeather Bot running on port ${PORT}`));
+async function estimateWithOSRM() {
+  try {
+    const points = [state.origin, ...state.waypoints.filter(w=>w.lat&&w.lon), state.destination];
+    const coords = points.map(p => `${p.lon},${p.lat}`).join(';');
+    const data   = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`
+    ).then(r => r.json());
+    resetEstimateBtn();
+    const route = data.routes?.[0];
+    if (!route) return showToast('ประเมินเส้นทางไม่ได้');
+    showEstimateResult(Math.round(route.distance/1000), Math.round(route.duration/60), []);
+  } catch {
+    resetEstimateBtn();
+    showToast('ประเมินเส้นทางไม่ได้ กรุณาลองใหม่');
+  }
+}
+
+function showEstimateResult(distKm, durMin, legs) {
+  const h   = Math.floor(durMin / 60);
+  const m   = durMin % 60;
+  const dur = h > 0 ? `${h}ชม.${m > 0 ? m+'น.' : ''}` : `${m}น.`;
+  document.getElementById('est-dist').textContent = distKm;
+  document.getElementById('est-dur').textContent  = dur;
+  const dotColors = ['#185FA5', ...state.waypoints.map(() => '#EF9F27'), '#0F6E56'];
+  const allPoints = [state.origin, ...state.waypoints, state.destination];
+  const legsHTML  = legs.length
+    ? legs.map((leg, i) => `
+        <div class="estimate-leg">
+          <div class="estimate-leg-dot" style="background:${dotColors[i]}"></div>
+          <div class="estimate-leg-name">${leg.from} → ${leg.to}</div>
+          <div class="estimate-leg-info">~${leg.distKm} กม. · ~${leg.durMin} น.</div>
+        </div>`).join('')
+    : allPoints.slice(0,-1).map((p, i) => `
+        <div class="estimate-leg">
+          <div class="estimate-leg-dot" style="background:${dotColors[i]}"></div>
+          <div class="estimate-leg-name">${p.name} → ${allPoints[i+1].name}</div>
+          <div class="estimate-leg-info"></div>
+        </div>`).join('');
+  document.getElementById('estimate-legs').innerHTML = legsHTML;
+  document.getElementById('estimate-card').classList.add('show');
+}
+
+function resetEstimateBtn() {
+  const btn = document.getElementById('btn-estimate');
+  btn.classList.remove('loading');
+  btn.textContent = '🔍 ประเมินเส้นทางอีกครั้ง';
+}
+
+// ─── Create Trip ───────────────────────────────────────────────
+async function createTrip() {
+  if (!state.origin)      return showToast('กรุณาเลือกจุดเริ่มต้น');
+  if (!state.destination) return showToast('กรุณาเลือกจุดหมาย');
+  try {
+    const data = await fetch(`${BASE}/api/trip/create`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId:state.userId, groupId:GROUP_ID, carId:state.selectedCar,
+        origin:state.origin, waypoints:state.waypoints, destination:state.destination }),
+    }).then(r => r.json());
+    state.tripCode = data.tripCode;
+    document.getElementById('created-code').textContent = data.tripCode;
+    document.getElementById('created-route').innerHTML =
+      `🔵 ${state.origin.name}<br>` +
+      state.waypoints.map(w=>`🟡 ${w.name}<br>`).join('') +
+      `🏁 ${state.destination.name}`;
+    showScreen('screen-created');
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
+
+// ─── Open in Google Maps ───────────────────────────────────────
+function openInGoogleMaps() {
+  if (!state.origin || !state.destination) return;
+  const o  = `${state.origin.lat},${state.origin.lon}`;
+  const d  = `${state.destination.lat},${state.destination.lon}`;
+  const wps = state.waypoints.filter(w => w.lat && w.lon)
+    .map(w => `${w.lat},${w.lon}`).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}&travelmode=driving`;
+  if (wps) url += `&waypoints=${encodeURIComponent(wps)}`;
+  window.open(url, '_blank');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(state.tripCode).then(() => showToast('คัดลอก code แล้ว!'));
+}
+
+function startTracking() {
+  window.location.href = `${BASE}/liff/map.html?liffId=${LIFF_ID}&groupId=${GROUP_ID}&tripCode=${state.tripCode}&carId=${state.selectedCar}&userId=${state.userId}`;
+}
+
+// ─── Join Trip ─────────────────────────────────────────────────
+async function searchTrip() {
+  const code = document.getElementById('join-code-input').value.trim();
+  if (code.length < 4) return showToast('กรุณากรอก code ให้ครบ');
+  try {
+    const resp = await fetch(`${BASE}/api/trip/${code}`);
+    if (!resp.ok) return showToast('ไม่พบ Trip นี้');
+    const trip = await resp.json(); state.foundTrip = trip;
+    const oName = trip.origin?.name ?? trip.origin ?? '?';
+    const dName = trip.destination?.name ?? trip.destination ?? '?';
+    document.getElementById('join-route-text').textContent = `${oName} → ${dName}`;
+    document.getElementById('join-sub-text').textContent = `${trip.waypoints.length} จุดแวะ`;
+    document.getElementById('join-car-grid').innerHTML = Object.entries(trip.cars).map(([id,car]) => {
+      const taken = car.members.length > 0, isSel = id === state.joinCarId;
+      return `<div class="car-btn ${isSel?'sel-b':''}" onclick="selectJoinCar('${id}')" style="${taken&&!isSel?'opacity:0.55':''}">
+        <div class="car-btn-icon">${id==='A'?'🚗':'🚙'}</div>
+        <div class="car-btn-name">คัน ${id}</div>
+        <div class="car-btn-sub">${taken?car.members.length+' คน':'ว่างอยู่'}</div></div>`;
+    }).join('');
+    document.getElementById('join-result').classList.remove('hidden');
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
+
+function selectJoinCar(id) { state.joinCarId = id; searchTrip(); }
+
+async function joinTrip() {
+  if (!state.foundTrip) return;
+  try {
+    await fetch(`${BASE}/api/trip/join`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId:state.userId, tripCode:state.foundTrip.tripCode, carId:state.joinCarId }),
+    });
+    state.tripCode = state.foundTrip.tripCode; startTracking();
+  } catch (e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
+
+// ─── Toast ─────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
