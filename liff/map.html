@@ -100,15 +100,16 @@ const BASE      = window.location.origin;
 
 const CAR_COLORS = { A: '#3B82F6', B: '#10B981', C: '#F59E0B', D: '#EF4444' };
 
-let map         = null;
-let markers     = {};   // carId → google.maps.Marker
-let infoWindows = {};   // carId → google.maps.InfoWindow
-let polyline    = null;
-let myGps       = null;
-let pollTimer   = null;
-let gpsTimer    = null;
+let map           = null;
+let markers       = {};   // carId → google.maps.Marker
+let infoWindows   = {};   // carId → google.maps.InfoWindow
+let polyline      = null; // เส้นระหว่างคัน
+let routeRenderer = null; // เส้นทางจริงบนถนน
+let myGps         = null;
+let pollTimer     = null;
 let lastPositions = {};
-let tripData    = null;
+let tripData      = null;
+let routeDrawn    = false;
 
 // ─── Init ──────────────────────────────────────────────────────
 async function init() {
@@ -178,11 +179,25 @@ async function loadTrip() {
     document.getElementById('header-title').textContent = `${oName} → ${dName}`;
     document.getElementById('header-sub').textContent = TRIP_CODE;
 
-    // วาง marker จุดเริ่ม + ปลายทาง (สีเทา)
+    // วาง marker จุดเริ่ม + ปลายทาง
     if (tripData.origin?.lat) addStaticMarker(tripData.origin, '🔵', 'origin');
     if (tripData.destination?.lat) addStaticMarker(tripData.destination, '🏁', 'dest');
     for (const wp of (tripData.waypoints || [])) {
       if (wp?.lat) addStaticMarker(wp, '🟡', 'wp');
+    }
+
+    // วาดเส้นทางบนถนน
+    drawRoute();
+
+    // fit map ให้เห็นทั้งเส้นทาง
+    if (tripData.origin?.lat && tripData.destination?.lat) {
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend({ lat: tripData.origin.lat, lng: tripData.origin.lon });
+      bounds.extend({ lat: tripData.destination.lat, lng: tripData.destination.lon });
+      for (const wp of (tripData.waypoints || [])) {
+        if (wp?.lat) bounds.extend({ lat: wp.lat, lng: wp.lon });
+      }
+      map.fitBounds(bounds, { top: 80, bottom: 160, left: 20, right: 20 });
     }
   } catch (e) { console.warn('Load trip failed:', e.message); }
 }
@@ -200,6 +215,47 @@ function addStaticMarker(place, emoji, type) {
     },
     title: place.name || '',
     zIndex: 1,
+  });
+}
+
+// ─── Draw Route ────────────────────────────────────────────────
+function drawRoute() {
+  if (routeDrawn || !tripData) return;
+  const origin = tripData.origin;
+  const dest   = tripData.destination;
+  if (!origin?.lat || !dest?.lat) return;
+
+  const waypts = (tripData.waypoints || [])
+    .filter(w => w?.lat && w?.lon)
+    .map(w => ({ location: new google.maps.LatLng(w.lat, w.lon), stopover: true }));
+
+  const dirSvc = new google.maps.DirectionsService();
+  if (!routeRenderer) {
+    routeRenderer = new google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,          // ซ่อน marker default ของ Google
+      polylineOptions: {
+        strokeColor:   '#4B9EF5',
+        strokeOpacity: 0.7,
+        strokeWeight:  5,
+      },
+    });
+  }
+
+  dirSvc.route({
+    origin:      new google.maps.LatLng(origin.lat, origin.lon),
+    destination: new google.maps.LatLng(dest.lat, dest.lon),
+    waypoints:   waypts,
+    travelMode:  google.maps.TravelMode.DRIVING,
+    language:    'th',
+  }, (result, status) => {
+    if (status === 'OK') {
+      routeRenderer.setDirections(result);
+      routeDrawn = true;
+      console.log('Route drawn successfully');
+    } else {
+      console.warn('Directions failed:', status);
+    }
   });
 }
 
@@ -248,23 +304,35 @@ function updateMarkers(positions) {
     if (infoWindows[carId]?.getMap()) openInfoWindow(carId);
   });
 
-  // วาดเส้นระหว่างคัน
+  // วาดเส้นตรงระหว่างรถสองคัน (dashed)
   const pts = Object.values(positions)
     .filter(p => p?.lat && p?.lon)
     .map(p => ({ lat: p.lat, lng: p.lon }));
 
   if (pts.length >= 2) {
+    const dashSymbol = {
+      path: 'M 0,-1 0,1',
+      strokeOpacity: 1,
+      scale: 3,
+    };
     if (polyline) {
       polyline.setPath(pts);
     } else {
       polyline = new google.maps.Polyline({
         path: pts, map,
-        strokeColor: '#ffffff',
-        strokeOpacity: 0.4,
+        strokeColor: '#fff',
+        strokeOpacity: 0,
         strokeWeight: 2,
-        icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2 }, repeat: '60px' }],
+        icons: [{
+          icon: dashSymbol,
+          offset: '0',
+          repeat: '16px',
+        }],
       });
     }
+  } else if (polyline) {
+    polyline.setMap(null);
+    polyline = null;
   }
 }
 
