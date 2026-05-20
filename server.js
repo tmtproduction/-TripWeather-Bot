@@ -834,38 +834,7 @@ function buildPillMessage(carName, district, minutesDiff, gap) {
   };
 }
 
-function _buildPillMessage_UNUSED(
-  const gapContents = gap ? [
-    { type:"separator", margin:"sm" },
-    { type:"text",
-      text:`📏 ห่างกัน ~${gap.distKm < 1 ? Math.round(gap.distKm*1000)+'ม.' : gap.distKm+'กม.'}`,
-      size:"xs", color:"#888", margin:"sm" },
-  ] : [];
 
-  return {
-    type: "flex",
-    altText: `${carName} เข้า ${district} แล้วครับ`,
-    contents: {
-      type:"bubble", size:"kilo",
-      body:{
-        type:"box", layout:"vertical", paddingAll:"12px", spacing:"sm",
-        contents:[
-          { type:"box", layout:"horizontal", spacing:"md", alignItems:"center",
-            contents:[
-              { type:"box", layout:"vertical", width:"36px", backgroundColor:"#E1F5EE", cornerRadius:"18px", paddingAll:"8px", alignItems:"center",
-                contents:[{ type:"text", text:"🚗", size:"md", align:"center" }] },
-              { type:"box", layout:"vertical", flex:1,
-                contents:[
-                  { type:"text", text:`${carName} เข้า ${district} แล้วครับ`, size:"sm", weight:"bold", color:"#1a1a1a", wrap:true },
-                  { type:"text", text:minutesDiff > 0 ? `ห่างคันแรก ~${minutesDiff} นาที` : "เกือบพร้อมกัน", size:"xs", color:"#888888", margin:"xs" },
-                ] },
-            ] },
-          ...gapContents,
-        ],
-      },
-    },
-  };
-}
 
 function buildGapMessage(nameA, distA, nameB, distB, distKm) {
   const gapText = distKm < 1 ? `${Math.round(distKm*1000)} ม.` : `${distKm} กม.`;
