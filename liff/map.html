@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TripWeather — แผนที่</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a1a;color:#fff;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  /* Header */
+  .header{background:#1a1a1aee;backdrop-filter:blur(10px);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:absolute;top:0;left:0;right:0;z-index:10}
+  .header-left{display:flex;align-items:center;gap:8px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#1D9E75;animation:blink 1.4s infinite;flex-shrink:0}
+  .live-dot.off{background:#666;animation:none}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .header-title{font-size:13px;font-weight:600;color:#fff}
+  .header-sub{font-size:10px;color:#aaa;margin-top:1px}
+  .header-right{display:flex;align-items:center;gap:6px}
+  .icon-btn{background:#ffffff18;border:none;border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px}
+  .icon-btn:active{opacity:.8}
+
+  /* Map */
+  #map{flex:1;width:100%;height:100vh}
+
+  /* Car Cards — bottom sheet */
+  .cars-sheet{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:10px 12px 20px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .car-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .car-cards::-webkit-scrollbar{display:none}
+  .car-card{background:#1a1a1aee;backdrop-filter:blur(10px);border-radius:14px;padding:10px 12px;min-width:160px;flex-shrink:0;border:1px solid #ffffff18;pointer-events:all;cursor:pointer;transition:border-color .2s}
+  .car-card.active{border-color:#1D9E75}
+  .car-card-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .car-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .car-name{font-size:12px;font-weight:600;color:#fff}
+  .car-badge{font-size:10px;padding:1px 6px;border-radius:8px;margin-left:auto}
+  .car-district{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .car-meta{font-size:10px;color:#888;margin-top:2px}
+
+  .gap-pill{background:#1a1a1aee;backdrop-filter:blur(10px);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#fff;text-align:center;border:1px solid #ffffff18;pointer-events:all;align-self:center;display:none}
+  .gap-pill.show{display:block}
+
+  /* Loading */
+  .loading-overlay{position:absolute;inset:0;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:50}
+  .loading-spinner{width:36px;height:36px;border:3px solid #333;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:13px;color:#888}
+
+  /* Toast */
+  .toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;white-space:nowrap;border:1px solid #333}
+  .toast.show{opacity:1}
+
+  /* No GPS */
+  .nogps-banner{position:absolute;top:60px;left:12px;right:12px;background:#E24B4A22;border:1px solid #E24B4A55;border-radius:10px;padding:8px 12px;font-size:12px;color:#fca5a5;z-index:15;display:none}
+  .nogps-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">กำลังโหลดแผนที่...</div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="live-dot off" id="live-dot"></div>
+    <div>
+      <div class="header-title" id="header-title">TripWeather Map</div>
+      <div class="header-sub" id="header-sub">กำลังโหลด...</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" onclick="fitBounds()">⊞ ดูทุกคัน</button>
+    <button class="icon-btn" onclick="centerOnMe()">📍 ฉัน</button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div class="nogps-banner" id="nogps-banner">
+  ⚠️ ยังไม่ได้รับสัญญาณ GPS — กรุณาอนุญาตการใช้ตำแหน่งในเบราว์เซอร์
+</div>
+
+<div class="cars-sheet">
+  <div class="gap-pill" id="gap-pill">📏 —</div>
+  <div class="car-cards" id="car-cards"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const params    = new URLSearchParams(window.location.search);
+const LIFF_ID   = params.get('liffId')   || '';
+const GROUP_ID  = params.get('groupId')  || '';
+const TRIP_CODE = params.get('tripCode') || '';
+const CAR_ID    = params.get('carId')    || 'A';
+const USER_ID   = params.get('userId')   || ('dev-' + Date.now());
+const BASE      = window.location.origin;
+
+const CAR_COLORS = { A: '#3B82F6', B: '#10B981', C: '#F59E0B', D: '#EF4444' };
+
+let map         = null;
+let markers     = {};   // carId → google.maps.Marker
+let infoWindows = {};   // carId → google.maps.InfoWindow
+let polyline    = null;
+let myGps       = null;
+let pollTimer   = null;
+let gpsTimer    = null;
+let lastPositions = {};
+let tripData    = null;
+
+// ─── Init ──────────────────────────────────────────────────────
+async function init() {
+  try { await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' }); }
+  catch (e) { console.warn('LIFF dev mode'); }
+
+  try {
+    const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
+    if (!cfg.mapsKey) throw new Error('no maps key');
+
+    await new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${cfg.mapsKey}&language=th`;
+      s.onload = ok; s.onerror = fail;
+      document.head.appendChild(s);
+    });
+
+    initMap();
+    await loadTrip();
+    startGps();
+    startPolling();
+    document.getElementById('loading').style.display = 'none';
+  } catch (e) {
+    document.querySelector('.loading-text').textContent = 'โหลดไม่ได้: ' + e.message;
+  }
+}
+
+// ─── Map Init ──────────────────────────────────────────────────
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 13.75, lng: 100.52 },
+    zoom: 7,
+    mapTypeId: 'roadmap',
+    disableDefaultUI: true,
+    gestureHandling: 'greedy',
+    styles: [
+      { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
+      { featureType:'transit', elementType:'labels', stylers:[{ visibility:'off' }] },
+    ],
+  });
+}
+
+// ─── Load Trip ─────────────────────────────────────────────────
+async function loadTrip() {
+  if (!TRIP_CODE) return;
+  try {
+    const resp = await fetch(`${BASE}/api/trip/${TRIP_CODE}`);
+    if (!resp.ok) return;
+    tripData = await resp.json();
+    const oName = tripData.origin?.name ?? '';
+    const dName = tripData.destination?.name ?? '';
+    document.getElementById('header-title').textContent = `${oName} → ${dName}`;
+    document.getElementById('header-sub').textContent = TRIP_CODE;
+
+    // วาง marker จุดเริ่ม + ปลายทาง (สีเทา)
+    if (tripData.origin?.lat) addStaticMarker(tripData.origin, '🔵', 'origin');
+    if (tripData.destination?.lat) addStaticMarker(tripData.destination, '🏁', 'dest');
+    for (const wp of (tripData.waypoints || [])) {
+      if (wp?.lat) addStaticMarker(wp, '🟡', 'wp');
+    }
+  } catch (e) { console.warn('Load trip failed:', e.message); }
+}
+
+function addStaticMarker(place, emoji, type) {
+  new google.maps.Marker({
+    position: { lat: place.lat, lng: place.lon },
+    map,
+    icon: {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+          <text y="22" font-size="20">${emoji}</text>
+        </svg>`)}`,
+      anchor: new google.maps.Point(14, 14),
+    },
+    title: place.name || '',
+    zIndex: 1,
+  });
+}
+
+// ─── Polling ────────────────────────────────────────────────────
+function startPolling() {
+  fetchPositions();
+  pollTimer = setInterval(fetchPositions, 5000);
+}
+
+async function fetchPositions() {
+  if (!TRIP_CODE) return;
+  try {
+    const data = await fetch(`${BASE}/api/trip/${TRIP_CODE}/positions`).then(r => r.json());
+    if (!data.positions) return;
+    lastPositions = data.positions;
+    updateMarkers(data.positions);
+    updateCarCards(data.positions);
+    updateGapPill(data.positions);
+    document.getElementById('live-dot').classList.remove('off');
+  } catch (e) { console.warn('Poll error:', e.message); }
+}
+
+// ─── Markers ────────────────────────────────────────────────────
+function updateMarkers(positions) {
+  Object.entries(positions).forEach(([carId, pos]) => {
+    if (!pos?.lat || !pos?.lon) return;
+    const latlng = { lat: pos.lat, lng: pos.lon };
+    const color  = CAR_COLORS[carId] || '#888';
+    const label  = carId;
+
+    if (markers[carId]) {
+      markers[carId].setPosition(latlng);
+    } else {
+      const icon = {
+        url: makeCarIconUrl(color, label),
+        scaledSize: new google.maps.Size(44, 44),
+        anchor: new google.maps.Point(22, 44),
+      };
+      markers[carId] = new google.maps.Marker({
+        position: latlng, map, icon, zIndex: 10, title: pos.carName || `คัน ${carId}`,
+      });
+      infoWindows[carId] = new google.maps.InfoWindow();
+      markers[carId].addListener('click', () => openInfoWindow(carId));
+    }
+    // อัปเดต info window ถ้าเปิดอยู่
+    if (infoWindows[carId]?.getMap()) openInfoWindow(carId);
+  });
+
+  // วาดเส้นระหว่างคัน
+  const pts = Object.values(positions)
+    .filter(p => p?.lat && p?.lon)
+    .map(p => ({ lat: p.lat, lng: p.lon }));
+
+  if (pts.length >= 2) {
+    if (polyline) {
+      polyline.setPath(pts);
+    } else {
+      polyline = new google.maps.Polyline({
+        path: pts, map,
+        strokeColor: '#ffffff',
+        strokeOpacity: 0.4,
+        strokeWeight: 2,
+        icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2 }, repeat: '60px' }],
+      });
+    }
+  }
+}
+
+function openInfoWindow(carId) {
+  const pos = lastPositions[carId];
+  if (!pos) return;
+  const ago  = pos.updatedAt ? timeAgo(pos.updatedAt) : '—';
+  const name = pos.carName || `คัน ${carId}`;
+  infoWindows[carId].setContent(`
+    <div style="font-family:-apple-system,sans-serif;padding:4px 2px;min-width:140px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:3px">${name}</div>
+      <div style="font-size:13px;color:#333;margin-bottom:2px">📍 ${pos.district || '—'}</div>
+      <div style="font-size:11px;color:#888">${ago}</div>
+    </div>
+  `);
+  Object.values(infoWindows).forEach(iw => iw.close());
+  infoWindows[carId].open(map, markers[carId]);
+}
+
+function makeCarIconUrl(color, label) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+    <circle cx="22" cy="20" r="18" fill="${color}" stroke="white" stroke-width="2.5"/>
+    <text x="22" y="26" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="white">${label}</text>
+    <polygon points="22,42 16,32 28,32" fill="${color}" stroke="white" stroke-width="1.5"/>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+// ─── Car Cards ──────────────────────────────────────────────────
+function updateCarCards(positions) {
+  const container = document.getElementById('car-cards');
+  const entries = Object.entries(positions);
+  if (!entries.length) return;
+
+  container.innerHTML = entries.map(([carId, pos]) => {
+    const color   = CAR_COLORS[carId] || '#888';
+    const name    = pos?.carName || `คัน ${carId}`;
+    const district = pos?.district || 'รอสัญญาณ GPS...';
+    const ago     = pos?.updatedAt ? timeAgo(pos.updatedAt) : '—';
+    const isMe    = carId === CAR_ID;
+    return `
+      <div class="car-card ${isMe ? 'active' : ''}" onclick="focusCar('${carId}')">
+        <div class="car-card-top">
+          <div class="car-dot" style="background:${color}"></div>
+          <div class="car-name">${name}</div>
+          ${isMe ? '<span class="car-badge" style="background:#1D9E7544;color:#1D9E75">คุณ</span>' : ''}
+        </div>
+        <div class="car-district">${district}</div>
+        <div class="car-meta">อัปเดต ${ago}</div>
+      </div>`;
+  }).join('');
+}
+
+function focusCar(carId) {
+  const pos = lastPositions[carId];
+  if (!pos?.lat) return;
+  map.panTo({ lat: pos.lat, lng: pos.lon });
+  map.setZoom(12);
+  openInfoWindow(carId);
+}
+
+// ─── Gap Pill ───────────────────────────────────────────────────
+function updateGapPill(positions) {
+  const pts = Object.values(positions).filter(p => p?.lat && p?.lon);
+  if (pts.length < 2) { document.getElementById('gap-pill').classList.remove('show'); return; }
+  const [a, b] = pts;
+  const km = haversine(a.lat, a.lon, b.lat, b.lon);
+  const display = km < 1 ? `${Math.round(km*1000)} ม.` : `${km.toFixed(1)} กม.`;
+  document.getElementById('gap-pill').textContent = `📏 ห่างกัน ~${display}`;
+  document.getElementById('gap-pill').classList.add('show');
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371, d2r = Math.PI/180;
+  const dLat = (lat2-lat1)*d2r, dLon = (lon2-lon1)*d2r;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*d2r)*Math.cos(lat2*d2r)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+// ─── GPS Sender ─────────────────────────────────────────────────
+function startGps() {
+  if (!navigator.geolocation) {
+    document.getElementById('nogps-banner').classList.add('show');
+    return;
+  }
+  // ส่ง GPS ทุก 15 วินาที
+  navigator.geolocation.watchPosition(
+    pos => {
+      myGps = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      document.getElementById('nogps-banner').classList.remove('show');
+      sendGps();
+    },
+    () => document.getElementById('nogps-banner').classList.add('show'),
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  );
+}
+
+let lastGpsSend = 0;
+async function sendGps() {
+  if (!myGps || !GROUP_ID) return;
+  const now = Date.now();
+  if (now - lastGpsSend < 14000) return;  // throttle 15 วินาที
+  lastGpsSend = now;
+  try {
+    await fetch(`${BASE}/api/location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: USER_ID, groupId: GROUP_ID,
+        tripCode: TRIP_CODE, carId: CAR_ID,
+        lat: myGps.lat, lon: myGps.lon,
+      }),
+    });
+  } catch (e) { console.warn('GPS send error:', e.message); }
+}
+
+// ─── Map Controls ───────────────────────────────────────────────
+function fitBounds() {
+  const pts = Object.values(lastPositions).filter(p => p?.lat);
+  if (!pts.length) return;
+  const bounds = new google.maps.LatLngBounds();
+  pts.forEach(p => bounds.extend({ lat: p.lat, lng: p.lon }));
+  map.fitBounds(bounds, { top: 80, bottom: 140, left: 20, right: 20 });
+}
+
+function centerOnMe() {
+  if (!myGps) return showToast('ยังไม่มีสัญญาณ GPS ครับ');
+  map.panTo({ lat: myGps.lat, lng: myGps.lon });
+  map.setZoom(14);
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
+function timeAgo(ts) {
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'เพิ่งอัปเดต';
+  if (m < 60) return `${m} นาทีที่แล้ว`;
+  return `${Math.floor(m/60)} ชม.ที่แล้ว`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Wake Lock
+(async () => {
+  try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch {}
+})();
+
+init();
+</script>
+</body>
+</html>
