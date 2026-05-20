@@ -112,8 +112,23 @@ let tripData    = null;
 
 // ─── Init ──────────────────────────────────────────────────────
 async function init() {
-  try { await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' }); }
-  catch (e) { console.warn('LIFF dev mode'); }
+  // ถ้าไม่มี LIFF ID หรือเปิดใน browser ปกติ → ไม่ต้อง login
+  if (LIFF_ID && LIFF_ID !== '0000000000-xxxxxxxx') {
+    try {
+      await liff.init({
+        liffId: LIFF_ID,
+        withLoginOnExternalBrowser: false,  // ไม่ redirect login บน browser ปกติ
+      });
+      // ถ้าอยู่ใน LINE client และ login แล้ว → ดึง userId จริง
+      if (liff.isInClient() && liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        // อัปเดต USER_ID เป็นของจริง (ถ้ายังเป็น dev-)
+        if (USER_ID.startsWith('dev-')) {
+          window._realUserId = profile.userId;
+        }
+      }
+    } catch (e) { console.warn('LIFF init failed, continuing without auth:', e.message); }
+  }
 
   try {
     const cfg = await fetch(`${BASE}/api/config`).then(r => r.json());
@@ -354,11 +369,12 @@ async function sendGps() {
   if (now - lastGpsSend < 14000) return;  // throttle 15 วินาที
   lastGpsSend = now;
   try {
+    const uid = window._realUserId || USER_ID;
     await fetch(`${BASE}/api/location`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: USER_ID, groupId: GROUP_ID,
+        userId: uid, groupId: GROUP_ID,
         tripCode: TRIP_CODE, carId: CAR_ID,
         lat: myGps.lat, lon: myGps.lon,
       }),
