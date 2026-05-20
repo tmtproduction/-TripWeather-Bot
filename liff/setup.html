@@ -354,15 +354,33 @@ async function loadGoogleMaps() {
 
 // ─── LIFF ─────────────────────────────────────────────────────
 async function initLiff() {
+  // ดึง userId จาก localStorage ก่อน (persistent across sessions)
+  let savedId = localStorage.getItem('tw_userId');
+  if (!savedId) {
+    savedId = 'user-' + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem('tw_userId', savedId);
+  }
+  state.userId = savedId;
+  state.displayName = 'ผู้ใช้งาน';
+
+  if (!LIFF_ID || LIFF_ID === '0000000000-xxxxxxxx') return;
+
   try {
-    await liff.init({ liffId: LIFF_ID || '0000000000-xxxxxxxx' });
-    if (liff.isLoggedIn()) {
+    await liff.init({
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: false,  // ไม่บังคับ login บน browser ปกติ
+    });
+
+    if (liff.isInClient() && liff.isLoggedIn()) {
+      // อยู่ใน LINE จริง → ใช้ LINE userId แทน
       const p = await liff.getProfile();
-      state.userId = p.userId; state.displayName = p.displayName;
-    } else { liff.login(); }
+      state.userId = p.userId;
+      state.displayName = p.displayName;
+      localStorage.setItem('tw_userId', p.userId);
+    }
+    // ถ้าไม่ได้อยู่ใน LINE → ใช้ savedId ที่สร้างไว้ปกติ
   } catch (e) {
-    console.warn('LIFF dev mode:', e.message);
-    state.userId = 'dev-' + Date.now(); state.displayName = 'ผู้ทดสอบ';
+    console.warn('LIFF init failed, using local userId:', e.message);
   }
 }
 
